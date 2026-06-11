@@ -29,6 +29,8 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const protectedPaths = ['/home', '/session', '/course', '/progress', '/insights', '/profile'];
+  // Onboarding handles its own account-creation flow and shouldn't bounce
+  // signed-out users; everything else under /auth is public by definition.
   const isProtected = protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p));
 
   if (isProtected && !user) {

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import OAuthButtons from '../OAuthButtons';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -31,6 +32,14 @@ export default function SignInPage() {
     <main className="flex min-h-screen flex-col justify-center px-6">
       <h1 className="mb-1 font-serif text-2xl">Welcome back.</h1>
       <p className="mb-6 text-sm text-muted">Sign in to continue your streak.</p>
+
+      <OAuthButtons />
+
+      <div className="my-4 flex items-center gap-3 text-xs text-muted">
+        <div className="h-px flex-1 bg-border" />
+        or
+        <div className="h-px flex-1 bg-border" />
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input
