@@ -40,43 +40,41 @@
     overflow: hidden;
     position: relative;
     box-shadow: 0 40px 80px rgba(0,0,0,.6);
+    transition: background .4s, border-color .4s;
   }
+  .phone.blitz { background: #1a0808; border-color: #5c1414; }
+
   .status-bar {
     display: flex; justify-content: space-between; align-items: center;
     padding: 14px 28px 8px;
     font-size: 12px; font-weight: 600; color: var(--muted);
   }
-  /* Screens */
   .screen { display: none; flex-direction: column; height: 100%; }
-  .screen.active { display: flex; }
+  .screen.active { display: flex; animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
-  /* Nav */
   .nav {
     display: flex; justify-content: space-around; align-items: center;
-    padding: 12px 0 20px;
+    padding: 10px 0 18px;
     border-top: 1px solid var(--border);
     background: var(--surface);
   }
   .nav-btn {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     background: none; border: none; cursor: pointer; color: var(--muted);
-    font-size: 10px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
-    transition: color .2s;
+    font-size: 9px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
   }
-  .nav-btn svg { width: 22px; height: 22px; }
+  .nav-btn span.ic { font-size: 18px; }
   .nav-btn.active { color: var(--accent); }
 
-  /* Scrollable content area */
   .content { flex: 1; overflow-y: auto; padding: 20px 20px 8px; }
   .content::-webkit-scrollbar { display: none; }
 
-  /* Typography */
-  h1 { font-size: 26px; font-weight: 700; line-height: 1.2; }
+  h1 { font-size: 24px; font-weight: 800; line-height: 1.25; }
   h2 { font-size: 18px; font-weight: 700; }
-  h3 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+  h3 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
   p { font-size: 14px; line-height: 1.6; color: var(--muted); }
 
-  /* Cards */
   .card {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -85,891 +83,1200 @@
     margin-bottom: 12px;
   }
 
-  /* Pill tags */
   .pill {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 4px 10px; border-radius: 99px;
     font-size: 11px; font-weight: 700; letter-spacing: .5px;
   }
   .pill-deep { background: rgba(108,99,255,.2); color: #a5a0ff; }
-  .pill-shallow { background: rgba(251,191,36,.2); color: var(--yellow); }
+  .pill-light { background: rgba(251,191,36,.2); color: var(--yellow); }
   .pill-break { background: rgba(74,222,128,.2); color: var(--green); }
+  .pill-blitz { background: rgba(248,113,113,.25); color: var(--red); }
 
-  /* Buttons */
   .btn {
     width: 100%; padding: 16px; border-radius: var(--radius);
     border: none; cursor: pointer; font-size: 16px; font-weight: 700;
     transition: opacity .15s, transform .1s;
   }
   .btn:active { transform: scale(.98); opacity: .9; }
+  .btn:disabled { opacity: .35; pointer-events: none; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-danger { background: var(--red); color: #fff; }
+  .btn-blitz { background: linear-gradient(135deg, #ff3b3b, #b30000); color: #fff; }
   .btn-ghost {
     background: var(--surface2); color: var(--muted);
     border: 1px solid var(--border);
   }
-  .btn-sm {
-    padding: 10px 16px; font-size: 13px; border-radius: var(--radius-sm);
-    width: auto;
-  }
+  .btn-sm { padding: 10px 16px; font-size: 13px; border-radius: var(--radius-sm); width: auto; }
 
-  /* Divider */
   .divider { height: 1px; background: var(--border); margin: 16px 0; }
 
-  /* ===== DASHBOARD ===== */
-  .greeting { margin-bottom: 20px; }
-  .greeting .date { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
-  .score-strip {
-    background: linear-gradient(135deg, rgba(108,99,255,.3), rgba(108,99,255,.05));
-    border: 1px solid rgba(108,99,255,.3);
-    border-radius: var(--radius);
-    padding: 16px; margin-bottom: 16px;
-    display: flex; align-items: center; gap: 16px;
+  textarea, input[type=text] {
+    width: 100%; background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 14px; color: var(--text);
+    font-size: 14px; font-family: inherit; resize: none;
   }
-  .score-circle {
-    width: 60px; height: 60px; border-radius: 50%;
-    background: conic-gradient(var(--accent) 0% 72%, var(--border) 72% 100%);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .score-circle .inner {
-    width: 46px; height: 46px; border-radius: 50%;
-    background: var(--surface2);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 800; color: var(--accent);
-  }
-  .schedule-item {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 0; border-bottom: 1px solid var(--border);
-  }
-  .schedule-item:last-child { border-bottom: none; }
-  .time-col { font-size: 12px; color: var(--muted); width: 52px; flex-shrink: 0; font-weight: 600; }
-  .task-col { flex: 1; }
-  .task-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
-  .task-sub { font-size: 12px; color: var(--muted); }
-  .dot {
-    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-    background: var(--accent);
-  }
-  .dot-yellow { background: var(--yellow); }
-  .dot-green { background: var(--green); }
-  .streak-row { display: flex; gap: 8px; margin-top: 4px; }
-  .streak-day {
-    flex: 1; height: 6px; border-radius: 3px; background: var(--border);
-  }
-  .streak-day.done { background: var(--green); }
-  .streak-day.today { background: var(--accent); }
-
-  /* ===== RITUAL ===== */
-  .ritual-step {
-    display: flex; align-items: center; gap: 14px;
-    padding: 16px;
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); margin-bottom: 10px;
-    cursor: pointer; transition: background .15s;
-  }
-  .ritual-step.done { opacity: .6; }
-  .ritual-step.done .check { background: var(--green); border-color: var(--green); }
-  .ritual-step.done .check::after { opacity: 1; }
-  .check {
-    width: 26px; height: 26px; border-radius: 50%;
-    border: 2px solid var(--border); flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    transition: all .2s;
-  }
-  .check::after {
-    content: '✓'; color: #fff; font-size: 13px; font-weight: 800; opacity: 0;
-    transition: opacity .2s;
-  }
-  .goal-banner {
-    background: rgba(108,99,255,.15); border: 1px solid rgba(108,99,255,.3);
-    border-radius: var(--radius); padding: 14px; margin-bottom: 20px;
-  }
-  .goal-label { font-size: 11px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 4px; }
-  .goal-text { font-size: 15px; font-weight: 600; }
-  .progress-bar-wrap { background: var(--border); border-radius: 4px; height: 6px; margin-top: 10px; }
-  .progress-bar-fill { height: 6px; border-radius: 4px; background: var(--accent); width: 45%; }
-
-  /* ===== SESSION ===== */
-  .session-header {
-    text-align: center; padding: 24px 20px 16px;
-  }
-  .session-header .subject { font-size: 13px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-  .session-header .task-title { font-size: 22px; font-weight: 800; }
-
-  .timer-ring-wrap { display: flex; justify-content: center; margin: 16px 0 20px; }
-  .timer-ring {
-    position: relative; width: 180px; height: 180px;
-  }
-  .timer-ring svg { transform: rotate(-90deg); }
-  .timer-ring .timer-label {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-  }
-  .timer-digits { font-size: 40px; font-weight: 800; letter-spacing: -2px; }
-  .timer-sub { font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 2px; }
-
-  .break-log { margin-bottom: 16px; }
-  .break-chip {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 99px; padding: 5px 10px;
-    font-size: 12px; color: var(--muted); margin: 3px;
-  }
-
-  .tip-bar {
-    background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.2);
-    border-radius: var(--radius-sm); padding: 12px 14px;
-    display: flex; gap: 10px; align-items: flex-start; margin-bottom: 16px;
-  }
-  .tip-bar .tip-icon { font-size: 18px; }
-  .tip-bar .tip-text { font-size: 13px; color: var(--yellow); line-height: 1.5; }
-
-  /* ===== BREAK ===== */
-  .break-screen-content {
-    flex: 1; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; text-align: center; padding: 32px 24px;
-  }
-  .break-timer {
-    font-size: 64px; font-weight: 900; letter-spacing: -4px;
-    color: var(--green); margin: 20px 0;
-  }
-  .allowed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 20px; }
-  .allowed-item {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); padding: 14px; text-align: center;
-  }
-  .allowed-item .icon { font-size: 28px; margin-bottom: 6px; }
-  .allowed-item .label { font-size: 12px; color: var(--muted); font-weight: 600; }
-  .blocked-item { opacity: .4; position: relative; }
-  .blocked-item::after {
-    content: '🚫'; position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%); font-size: 32px;
-  }
-
-  /* ===== REVIEW ===== */
-  .review-stat {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 0; border-bottom: 1px solid var(--border);
-  }
-  .review-stat:last-child { border-bottom: none; }
-  .review-stat .label { font-size: 14px; color: var(--muted); }
-  .review-stat .value { font-size: 14px; font-weight: 700; }
-  .value-green { color: var(--green); }
-  .value-yellow { color: var(--yellow); }
-  .value-red { color: var(--red); }
-
-  .attention-chart { height: 80px; display: flex; align-items: flex-end; gap: 4px; margin: 8px 0; }
-  .attention-bar {
-    flex: 1; border-radius: 4px 4px 0 0; background: var(--accent);
-    opacity: .6; transition: opacity .2s;
-  }
-  .attention-bar:last-child { opacity: 1; }
-
-  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .failure-tag {
-    padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 600;
-    background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
-    cursor: pointer;
-  }
-  .failure-tag.selected { background: rgba(248,113,113,.15); border-color: var(--red); color: var(--red); }
-
-  /* ===== STATS ===== */
-  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-  .stat-card {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); padding: 14px;
-  }
-  .stat-card .stat-val { font-size: 28px; font-weight: 800; color: var(--accent); }
-  .stat-card .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-  .peer-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 0; border-bottom: 1px solid var(--border);
-  }
-  .peer-row:last-child { border-bottom: none; }
-  .avatar {
-    width: 36px; height: 36px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 700; flex-shrink: 0;
-  }
-  .peer-info { flex: 1; }
-  .peer-name { font-size: 14px; font-weight: 600; }
-  .peer-sub { font-size: 12px; color: var(--muted); }
-  .badge { font-size: 18px; }
+  textarea:focus, input[type=text]:focus { outline: none; border-color: var(--accent); }
 
   /* Onboarding */
   .onboard-screen {
     display: none; flex-direction: column;
     background: var(--surface); min-height: 844px;
-    padding: 48px 28px 32px;
+    padding: 44px 26px 28px;
   }
-  .onboard-screen.active { display: flex; }
-  .onboard-step { font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
-  .onboard-q { font-size: 22px; font-weight: 800; margin-bottom: 28px; line-height: 1.3; }
+  .onboard-screen.active { display: flex; animation: fadeIn .25s ease; }
+  .onboard-step { font-size: 11px; color: var(--muted); margin-bottom: 8px; font-weight: 700; letter-spacing: .8px; }
+  .onboard-q { font-size: 20px; font-weight: 800; margin-bottom: 22px; line-height: 1.35; }
+  .onboard-sub { font-size: 13px; color: var(--muted); margin: -14px 0 18px; line-height: 1.5; }
   .option-btn {
     display: flex; align-items: center; gap: 12px;
     background: var(--surface2); border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm); padding: 14px 16px;
-    color: var(--text); font-size: 15px; font-weight: 600;
-    cursor: pointer; margin-bottom: 10px; transition: all .15s; width: 100%;
+    border-radius: var(--radius-sm); padding: 13px 16px;
+    color: var(--text); font-size: 14px; font-weight: 600;
+    cursor: pointer; margin-bottom: 9px; transition: all .15s; width: 100%;
     text-align: left;
   }
   .option-btn:hover, .option-btn.selected { border-color: var(--accent); background: rgba(108,99,255,.12); }
-  .option-emoji { font-size: 20px; }
-  .progress-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 24px; }
-  .dot-step { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
-  .dot-step.active { background: var(--accent); width: 22px; border-radius: 4px; }
+  .option-emoji { font-size: 18px; flex-shrink:0; }
+  .progress-dots { display: flex; gap: 5px; justify-content: center; margin-bottom: 22px; flex-wrap:wrap; }
+  .dot-step { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+  .dot-step.active { background: var(--accent); width: 18px; border-radius: 4px; }
+  .dot-step.done { background: var(--accent); opacity:.4; }
 
-  /* Transitions */
-  .fade { animation: fadeIn .25s ease; }
-  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  .slider-wrap { margin: 8px 0 22px; }
+  .slider-val { font-size: 28px; font-weight: 800; color: var(--accent); margin-bottom: 10px; text-align:center; }
+  input[type=range] {
+    width: 100%; accent-color: var(--accent); height: 6px;
+  }
+  .slider-labels { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:6px; }
+
+  .score-reveal {
+    text-align: center; padding: 30px 0;
+  }
+  .score-big { font-size: 56px; font-weight: 900; color: var(--red); }
+  .score-sub { font-size: 14px; color: var(--muted); margin-top: 8px; line-height:1.6; }
+
+  .pledge-box {
+    background: var(--surface2); border: 1.5px solid var(--accent);
+    border-radius: var(--radius); padding: 18px; margin: 16px 0;
+    font-size: 14px; line-height: 1.8; font-style: italic; color: var(--text);
+  }
+  .signature-line {
+    border-bottom: 2px solid var(--accent); margin-top: 20px; padding-bottom: 8px;
+    font-family: 'Brush Script MT', cursive; font-size: 28px; text-align:center; color: var(--accent);
+    min-height: 40px;
+  }
+
+  /* Ritual */
+  .ritual-progress { display:flex; gap:4px; padding: 0 20px; margin-bottom: 4px; }
+  .ritual-progress .seg { flex:1; height:4px; border-radius:2px; background:var(--border); }
+  .ritual-progress .seg.done { background: var(--accent); }
+  .ritual-center {
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding: 24px;
+  }
+  .ritual-icon { font-size: 48px; margin-bottom: 16px; }
+  .ritual-title { font-size: 24px; font-weight: 800; margin-bottom: 10px; line-height:1.3; }
+  .ritual-sub { font-size: 14px; color: var(--muted); margin-bottom: 28px; line-height:1.6; }
+  .star-row { display:flex; justify-content:center; gap:6px; margin: 16px 0 8px; font-size: 30px; }
+  .star { cursor: pointer; filter: grayscale(1); opacity:.4; transition: all .15s; }
+  .star.on { filter: grayscale(0); opacity:1; }
+
+  .check-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); margin-bottom: 10px;
+    cursor: pointer; transition: all .15s; text-align:left;
+  }
+  .check-row.done { opacity: .55; }
+  .check-row.done .check { background: var(--green); border-color: var(--green); }
+  .check-row.done .check::after { opacity: 1; }
+  .check {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2px solid var(--border); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s;
+  }
+  .check::after { content: '✓'; color: #fff; font-size: 12px; font-weight: 800; opacity: 0; transition: opacity .2s; }
+
+  /* Session */
+  .session-header { text-align: center; padding: 20px 20px 10px; }
+  .session-header .subject { font-size: 12px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .session-header .task-title { font-size: 19px; font-weight: 800; }
+  .blitz .session-header .subject { color: var(--red); }
+
+  .timer-ring-wrap { display: flex; justify-content: center; margin: 10px 0 14px; }
+  .timer-ring { position: relative; width: 160px; height: 160px; }
+  .timer-ring svg { transform: rotate(-90deg); }
+  .timer-ring .timer-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .timer-digits { font-size: 36px; font-weight: 800; letter-spacing: -2px; }
+  .timer-sub { font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+
+  .eyes-row { display:flex; justify-content:center; gap:24px; padding: 14px 0 4px; }
+  .eye {
+    width: 50px; height: 30px; background:#fff; border-radius: 50%;
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+    animation: squint 2.4s ease-in-out infinite;
+  }
+  .eye::after { content:''; width:16px; height:16px; background:#1a0808; border-radius:50%; }
+  @keyframes squint {
+    0%, 100% { height: 30px; }
+    50% { height: 8px; }
+  }
+  .blitz-banner {
+    text-align:center; font-size: 12px; font-weight: 800; letter-spacing: 1.5px;
+    color: var(--red); text-transform:uppercase; padding: 6px;
+  }
+
+  /* Tower / discipline */
+  .tower-wrap {
+    display:flex; flex-direction:column; align-items:center; padding: 20px 0 8px;
+  }
+  .tower { display:flex; flex-direction:column-reverse; align-items:center; gap:3px; height: 160px; justify-content:flex-start; }
+  .stone {
+    width: 90px; height: 22px; border-radius: 6px;
+    background: linear-gradient(135deg, #6c63ff, #4a42c4);
+    border: 1px solid rgba(255,255,255,.15);
+  }
+  .stone.ghost { background: var(--surface2); border: 1px dashed var(--border); }
+
+  .stat-grid-3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 14px 0; }
+  .stat-box { background: var(--surface2); border:1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 8px; text-align:center; }
+  .stat-box .v { font-size: 20px; font-weight: 800; color: var(--accent); }
+  .stat-box .l { font-size: 10px; color: var(--muted); margin-top:2px; line-height:1.3; }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; }
+  .stat-card .stat-val { font-size: 26px; font-weight: 800; color: var(--accent); }
+  .stat-card .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .schedule-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .schedule-item:last-child { border-bottom: none; }
+  .time-col { font-size: 12px; color: var(--muted); width: 52px; flex-shrink: 0; font-weight: 600; }
+  .task-col { flex: 1; }
+  .task-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--accent); }
+  .dot-yellow { background: var(--yellow); }
+  .dot-green { background: var(--green); }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag {
+    padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 600;
+    background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+    cursor: pointer;
+  }
+  .tag.selected { background: rgba(108,99,255,.15); border-color: var(--accent); color: var(--accent); }
+  .tag.warn.selected { background: rgba(248,113,113,.15); border-color: var(--red); color: var(--red); }
+
+  .toast {
+    position:absolute; bottom: 90px; left:20px; right:20px;
+    background: var(--surface2); border:1px solid var(--accent);
+    border-radius: var(--radius-sm); padding: 14px; text-align:center;
+    font-size: 13px; font-weight: 600; z-index:50; opacity:0; pointer-events:none;
+    transition: opacity .3s, transform .3s; transform: translateY(10px);
+  }
+  .toast.show { opacity:1; transform: translateY(0); }
+
+  .mc-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 </style>
 </head>
 <body>
 <div class="phone" id="app">
 
-  <!-- STATUS BAR -->
-  <div class="status-bar" id="statusBar">
+  <div class="status-bar" id="statusBar" style="display:none;">
     <span id="clock">9:41</span>
     <span>◉◉◉◉ 100%</span>
   </div>
 
-  <!-- ============== ONBOARDING Q1 ============== -->
-  <div class="onboard-screen active fade" id="onboard1">
-    <div class="progress-dots">
-      <div class="dot-step active"></div>
-      <div class="dot-step"></div>
-      <div class="dot-step"></div>
-      <div class="dot-step"></div>
-    </div>
-    <div class="onboard-step">STEP 1 OF 4</div>
-    <div class="onboard-q">What time do you usually wake up?</div>
-    <button class="option-btn" onclick="selectOption(this,'onboard1')"><span class="option-emoji">🌅</span>Before 6 AM</button>
-    <button class="option-btn" onclick="selectOption(this,'onboard1')"><span class="option-emoji">☀️</span>6 – 7 AM</button>
-    <button class="option-btn selected" onclick="selectOption(this,'onboard1')"><span class="option-emoji">🌤</span>7 – 8 AM</button>
-    <button class="option-btn" onclick="selectOption(this,'onboard1')"><span class="option-emoji">😴</span>After 8 AM</button>
+  <!-- ============================================================
+       FUNNEL — onboarding / quiz / score / pledge
+  ============================================================= -->
+  <div class="onboard-screen active" id="ob-1">
+    <div class="progress-dots" id="dots"></div>
+    <div class="onboard-step">STEP 1</div>
+    <div class="onboard-q">What classes are you taking?</div>
+    <div class="onboard-sub">Add each one. We'll use this to build your subject schedule.</div>
+    <div id="classList"></div>
+    <button class="btn btn-ghost btn-sm" style="margin-bottom:14px;" onclick="addClassField()">+ Add Class</button>
     <div style="flex:1"></div>
-    <button class="btn btn-primary" onclick="goTo('onboard2')">Continue →</button>
+    <button class="btn btn-primary" onclick="next('ob-2')">Continue →</button>
   </div>
 
-  <!-- ============== ONBOARDING Q2 ============== -->
-  <div class="onboard-screen fade" id="onboard2">
-    <div class="progress-dots">
-      <div class="dot-step"></div>
-      <div class="dot-step active"></div>
-      <div class="dot-step"></div>
-      <div class="dot-step"></div>
+  <div class="onboard-screen" id="ob-2">
+    <div class="progress-dots" id="dots2"></div>
+    <div class="onboard-step">STEP 2</div>
+    <div class="onboard-q">Realistically, how much time can you dedicate each day?</div>
+    <div class="slider-wrap">
+      <div class="slider-val" id="timeVal">2.5 hrs</div>
+      <input type="range" min="15" max="360" step="15" value="150" oninput="updateTime(this.value)">
+      <div class="slider-labels"><span>15 min</span><span>6 hrs</span></div>
     </div>
-    <div class="onboard-step">STEP 2 OF 4</div>
-    <div class="onboard-q">When do you have your hardest upcoming test?</div>
-    <button class="option-btn" onclick="selectOption(this,'onboard2')"><span class="option-emoji">🔥</span>This week</button>
-    <button class="option-btn selected" onclick="selectOption(this,'onboard2')"><span class="option-emoji">📅</span>Next week</button>
-    <button class="option-btn" onclick="selectOption(this,'onboard2')"><span class="option-emoji">📆</span>In 2–3 weeks</button>
-    <button class="option-btn" onclick="selectOption(this,'onboard2')"><span class="option-emoji">🗓</span>More than a month</button>
     <div style="flex:1"></div>
-    <button class="btn btn-primary" onclick="goTo('onboard3')">Continue →</button>
+    <button class="btn btn-primary" onclick="next('ob-3')">Continue →</button>
   </div>
 
-  <!-- ============== ONBOARDING Q3 ============== -->
-  <div class="onboard-screen fade" id="onboard3">
-    <div class="progress-dots">
-      <div class="dot-step"></div>
-      <div class="dot-step"></div>
-      <div class="dot-step active"></div>
-      <div class="dot-step"></div>
+  <div class="onboard-screen" id="ob-3">
+    <div class="progress-dots" id="dots3"></div>
+    <div class="onboard-step">STEP 3</div>
+    <div class="onboard-q">How long can you currently focus before drifting or reaching for your phone?</div>
+    <div class="slider-wrap">
+      <div class="slider-val" id="focusVal">20 min</div>
+      <input type="range" min="5" max="60" step="5" value="20" oninput="updateFocus(this.value)">
+      <div class="slider-labels"><span>5 min</span><span>1 hr</span></div>
     </div>
-    <div class="onboard-step">STEP 3 OF 4</div>
-    <div class="onboard-q">How long can you focus before needing a break?</div>
-    <button class="option-btn" onclick="selectOption(this,'onboard3')"><span class="option-emoji">⚡</span>Under 20 minutes</button>
-    <button class="option-btn selected" onclick="selectOption(this,'onboard3')"><span class="option-emoji">🎯</span>20 – 40 minutes</button>
-    <button class="option-btn" onclick="selectOption(this,'onboard3')"><span class="option-emoji">💪</span>40 – 60 minutes</button>
-    <button class="option-btn" onclick="selectOption(this,'onboard3')"><span class="option-emoji">🧠</span>60+ minutes</button>
     <div style="flex:1"></div>
-    <button class="btn btn-primary" onclick="goTo('onboard4')">Continue →</button>
+    <button class="btn btn-primary" onclick="next('ob-4')">Continue →</button>
   </div>
 
-  <!-- ============== ONBOARDING Q4 ============== -->
-  <div class="onboard-screen fade" id="onboard4">
-    <div class="progress-dots">
-      <div class="dot-step"></div>
-      <div class="dot-step"></div>
-      <div class="dot-step"></div>
-      <div class="dot-step active"></div>
-    </div>
-    <div class="onboard-step">STEP 4 OF 4</div>
-    <div class="onboard-q">Pick your biggest distraction during study.</div>
-    <button class="option-btn selected" onclick="selectOption(this,'onboard4')"><span class="option-emoji">📱</span>Social media / phone</button>
-    <button class="option-btn" onclick="selectOption(this,'onboard4')"><span class="option-emoji">🎵</span>Music / background noise</button>
-    <button class="option-btn" onclick="selectOption(this,'onboard4')"><span class="option-emoji">💬</span>Friends / family</button>
-    <button class="option-btn" onclick="selectOption(this,'onboard4')"><span class="option-emoji">😵</span>My own wandering mind</button>
+  <div class="onboard-screen" id="ob-4">
+    <div class="progress-dots" id="dots4"></div>
+    <div class="onboard-step">STEP 4</div>
+    <div class="onboard-q">During your last study session, how many times did you unlock your phone?</div>
+    <button class="option-btn" onclick="selectOption(this,'ob-4')">0</button>
+    <button class="option-btn" onclick="selectOption(this,'ob-4')">1–3</button>
+    <button class="option-btn selected" onclick="selectOption(this,'ob-4')">4–10</button>
+    <button class="option-btn" onclick="selectOption(this,'ob-4')">10+</button>
+    <button class="option-btn" onclick="selectOption(this,'ob-4')">I honestly don't know</button>
     <div style="flex:1"></div>
-    <button class="btn btn-primary" onclick="finishOnboarding()">Build My Schedule →</button>
+    <button class="btn btn-primary" onclick="next('ob-5')">Continue →</button>
   </div>
 
-  <!-- ============== MAIN APP ============== -->
+  <div class="onboard-screen" id="ob-5">
+    <div class="progress-dots" id="dots5"></div>
+    <div class="onboard-step">STEP 5</div>
+    <div class="onboard-q">Which of these sound familiar to you?</div>
+    <div class="onboard-sub">Tap all that apply.</div>
+    <button class="tag" style="display:block;width:100%;text-align:left;padding:13px 16px;margin-bottom:8px;border-radius:10px;" onclick="this.classList.toggle('selected')">I study with my phone beside me</button>
+    <button class="tag" style="display:block;width:100%;text-align:left;padding:13px 16px;margin-bottom:8px;border-radius:10px;" onclick="this.classList.toggle('selected')">I rarely plan my study sessions</button>
+    <button class="tag" style="display:block;width:100%;text-align:left;padding:13px 16px;margin-bottom:8px;border-radius:10px;" onclick="this.classList.toggle('selected')">I multitask while studying</button>
+    <button class="tag" style="display:block;width:100%;text-align:left;padding:13px 16px;margin-bottom:8px;border-radius:10px;" onclick="this.classList.toggle('selected')">I don't take breaks</button>
+    <button class="tag" style="display:block;width:100%;text-align:left;padding:13px 16px;margin-bottom:8px;border-radius:10px;" onclick="this.classList.toggle('selected')">I cram before tests</button>
+    <button class="tag selected" style="display:block;width:100%;text-align:left;padding:13px 16px;margin-bottom:8px;border-radius:10px;" onclick="this.classList.toggle('selected')">I usually start late</button>
+    <button class="tag" style="display:block;width:100%;text-align:left;padding:13px 16px;margin-bottom:8px;border-radius:10px;" onclick="this.classList.toggle('selected')">I sacrifice sleep for studying</button>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" onclick="next('ob-6')">Continue →</button>
+  </div>
+
+  <div class="onboard-screen" id="ob-6">
+    <div class="progress-dots" id="dots6"></div>
+    <div class="onboard-step">STEP 6</div>
+    <div class="onboard-q">In the last month, how often have you said "I'll do it later" instead of starting?</div>
+    <div class="slider-wrap">
+      <div class="slider-val" id="laterVal">Often</div>
+      <input type="range" min="1" max="4" step="1" value="3" oninput="updateLater(this.value)">
+      <div class="slider-labels"><span>Rarely</span><span>Almost every assignment</span></div>
+    </div>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" onclick="next('ob-7')">Continue →</button>
+  </div>
+
+  <div class="onboard-screen" id="ob-7">
+    <div class="progress-dots" id="dots7"></div>
+    <div class="onboard-step">STEP 7</div>
+    <div class="onboard-q">If your best friend texted you right now, what would happen?</div>
+    <button class="option-btn" onclick="selectOption(this,'ob-7')"><span class="option-emoji">📵</span>I'd ignore it completely</button>
+    <button class="option-btn selected" onclick="selectOption(this,'ob-7')"><span class="option-emoji">📱</span>I'd definitely pick it up</button>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" onclick="next('ob-8')">Continue →</button>
+  </div>
+
+  <div class="onboard-screen" id="ob-8">
+    <div class="progress-dots" id="dots8"></div>
+    <div class="onboard-step">STEP 8</div>
+    <div class="onboard-q">True or False: Sleeping immediately after studying actually hurts retention because your brain needs wakeful time to process new information.</div>
+    <button class="option-btn" onclick="selectOption(this,'ob-8')">True</button>
+    <button class="option-btn selected" onclick="selectOption(this,'ob-8')">False</button>
+    <div class="onboard-sub" style="margin-top:14px;">It's actually <b style="color:var(--text)">false</b> — sleep right after learning helps consolidate memory. Most students get this wrong.</div>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" onclick="next('ob-9')">Continue →</button>
+  </div>
+
+  <div class="onboard-screen" id="ob-9">
+    <div class="progress-dots" id="dots9"></div>
+    <div class="onboard-step">STEP 9</div>
+    <div class="onboard-q">How often have you told a parent or mentor your academic progress was better than it actually was?</div>
+    <button class="option-btn" onclick="selectOption(this,'ob-9')">Never</button>
+    <button class="option-btn" onclick="selectOption(this,'ob-9')">Once or twice</button>
+    <button class="option-btn selected" onclick="selectOption(this,'ob-9')">Somewhat often</button>
+    <button class="option-btn" onclick="selectOption(this,'ob-9')">Almost every assignment</button>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" onclick="next('ob-10')">Continue →</button>
+  </div>
+
+  <div class="onboard-screen" id="ob-10">
+    <div class="progress-dots" id="dots10"></div>
+    <div class="onboard-step">STEP 10</div>
+    <div class="onboard-q">If you truly committed yourself, how successful do you think you could become?</div>
+    <button class="option-btn" onclick="selectOption(this,'ob-10')">I already have a clear goal — I just need the discipline</button>
+    <button class="option-btn" onclick="selectOption(this,'ob-10')">Honestly, I don't know. I doubt myself a lot.</button>
+    <button class="option-btn" onclick="selectOption(this,'ob-10')">Successful enough to live comfortably and do work I'm proud of</button>
+    <button class="option-btn selected" onclick="selectOption(this,'ob-10')">I could become the person I've always imagined — I just have to get out of my own way</button>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" onclick="next('ob-11')">Continue →</button>
+  </div>
+
+  <!-- SCORE REVEAL -->
+  <div class="onboard-screen" id="ob-11">
+    <div class="onboard-step">YOUR RESULTS</div>
+    <div class="score-reveal">
+      <div style="font-size:14px;color:var(--muted);margin-bottom:6px;">Your Desk Habits Score</div>
+      <div class="score-big">31<span style="font-size:24px;color:var(--muted);">/100</span></div>
+      <div class="score-sub">Based on your answers, your current habits put you in the bottom third of students working toward competitive college admissions.</div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:10px;">Reality Check</h3>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;color:var(--muted);">Ivy League acceptance rate</span><span style="font-weight:700;font-size:13px;">6.9%</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;color:var(--muted);">State university acceptance rate</span><span style="font-weight:700;font-size:13px;">44%</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;">
+        <span style="font-size:13px;color:var(--muted);">Your current trajectory</span><span style="font-weight:700;font-size:13px;color:var(--red);">Below target</span>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:13px;">This isn't your fault — no one ever taught you how to actually study. That's what DeskHabits is for.</p>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" onclick="next('ob-12')">See How We Fix This →</button>
+  </div>
+
+  <!-- PLEDGE -->
+  <div class="onboard-screen" id="ob-12">
+    <div class="onboard-step">THE OATH</div>
+    <div class="onboard-q">Before we begin, make a commitment to yourself.</div>
+    <div class="pledge-box">
+      "I am tired of lying to myself and to the people who believe in me. I am ready to give up the habits that have been quietly sabotaging my future. Starting today, I will trust the structure DeskHabits gives me — every ritual, every session, every break — even when it's uncomfortable. I am building a version of myself that doesn't need to be forced to focus."
+    </div>
+    <div class="signature-line" id="sigLine">Sign here</div>
+    <input type="text" placeholder="Type your full name to sign" oninput="document.getElementById('sigLine').textContent = this.value || 'Sign here'" style="margin-top:14px;">
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" onclick="next('ob-13')">I Commit →</button>
+  </div>
+
+  <!-- SIGNUP -->
+  <div class="onboard-screen" id="ob-13">
+    <div class="onboard-step">LAST STEP</div>
+    <div class="onboard-q">Save your plan and create your account.</div>
+    <input type="text" placeholder="Email address" style="margin-bottom:10px;">
+    <input type="text" placeholder="Password" style="margin-bottom:10px;">
+    <div class="card" style="margin-top:14px;">
+      <h3 style="margin-bottom:8px;">What you get</h3>
+      <p style="margin-bottom:6px;">✓ A schedule built from your real life</p>
+      <p style="margin-bottom:6px;">✓ A guided ritual for every session — no more staring at a blank page</p>
+      <p style="margin-bottom:6px;">✓ Discipline, Attention &amp; Resilience scores that grow over time</p>
+      <p>✓ Blitz Mode for when a test sneaks up on you</p>
+    </div>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" onclick="finishOnboarding()">Build My Plan →</button>
+  </div>
+
+  <!-- ============================================================
+       MAIN APP
+  ============================================================= -->
   <div id="mainApp" style="display:none; flex-direction:column; height:844px;">
 
-    <!-- DASHBOARD SCREEN -->
-    <div class="screen active fade" id="screen-dashboard">
+    <!-- HOME -->
+    <div class="screen active" id="screen-home">
       <div class="content">
-        <div class="greeting">
-          <div class="date">MONDAY, JUN 9</div>
-          <h1>Good morning,<br>Alex. 👋</h1>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:2px;">MONDAY, JUN 9</div>
+          <h1>Your plan for today</h1>
         </div>
 
-        <div class="score-strip">
-          <div class="score-circle"><div class="inner">72</div></div>
-          <div>
-            <div style="font-size:13px;font-weight:700;margin-bottom:2px;">Focus Score</div>
-            <div style="font-size:12px;color:var(--muted);">Up 8 pts from last week</div>
-            <div class="streak-row" style="margin-top:8px;">
-              <div class="streak-day done"></div>
-              <div class="streak-day done"></div>
-              <div class="streak-day done"></div>
-              <div class="streak-day done"></div>
-              <div class="streak-day today"></div>
-              <div class="streak-day"></div>
-              <div class="streak-day"></div>
-            </div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px;">4-day streak 🔥</div>
+        <div class="tower-wrap card">
+          <h3 style="margin-bottom:10px;">Your Discipline Tower</h3>
+          <div class="tower" id="tower">
+            <div class="stone"></div>
+            <div class="stone"></div>
+            <div class="stone"></div>
+            <div class="stone ghost"></div>
+            <div class="stone ghost"></div>
+            <div class="stone ghost"></div>
+            <div class="stone ghost"></div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:10px;">3 stones laid. Complete today's sessions to add another.</div>
+          <div class="stat-grid-3">
+            <div class="stat-box"><div class="v">6</div><div class="l">phone pickups<br>per day (avg)</div></div>
+            <div class="stat-box"><div class="v">22m</div><div class="l">avg time before<br>fatigue</div></div>
+            <div class="stat-box"><div class="v">4🔥</div><div class="l">day streak</div></div>
           </div>
         </div>
 
         <h3 style="margin-bottom:12px;">Today's Schedule</h3>
-        <div class="card" style="padding:8px 14px;">
-          <div class="schedule-item">
-            <div class="time-col">4:00 PM</div>
-            <div class="dot"></div>
-            <div class="task-col">
-              <div class="task-name">AP Calc — Problem Sets</div>
-              <div class="task-sub"><span class="pill pill-deep">Deep Work · 50 min</span></div>
-            </div>
-          </div>
-          <div class="schedule-item">
-            <div class="time-col">4:55 PM</div>
-            <div class="dot dot-green"></div>
-            <div class="task-col">
-              <div class="task-name">Break</div>
-              <div class="task-sub"><span class="pill pill-break">10 min · replenishing</span></div>
-            </div>
-          </div>
-          <div class="schedule-item">
-            <div class="time-col">5:05 PM</div>
-            <div class="dot dot-yellow"></div>
-            <div class="task-col">
-              <div class="task-name">History Reading</div>
-              <div class="task-sub"><span class="pill pill-shallow">Shallow Work · 25 min</span></div>
-            </div>
-          </div>
-          <div class="schedule-item">
-            <div class="time-col">5:30 PM</div>
-            <div class="dot"></div>
-            <div class="task-col">
-              <div class="task-name">AP Calc — Test Review</div>
-              <div class="task-sub"><span class="pill pill-deep">Deep Work · 45 min</span></div>
-            </div>
-          </div>
-        </div>
+        <div class="card" style="padding:8px 14px;" id="scheduleList"></div>
 
         <div class="card" style="background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.2);">
           <div style="font-size:12px;color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">⚠ AP Calc Test in 6 days</div>
-          <div style="font-size:14px;font-weight:600;">Intensity ramping up. 3 deep sessions scheduled this week.</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Intensity is ramping up under the bell-curve plan.</div>
+          <button class="btn btn-blitz btn-sm" onclick="goTo('screen-blitzconfirm')">⚡ Switch to Blitz Mode</button>
         </div>
 
-        <button class="btn btn-primary" style="margin-top:4px;" onclick="goTo('screen-ritual')">Start 4:00 PM Session →</button>
+        <button class="btn btn-primary" onclick="goTo('screen-categorize')">Begin Today's Plan →</button>
+        <div style="height:8px"></div>
+        <button class="btn btn-ghost" onclick="showToast('Edit schedule — coming soon in full build.')">Edit Schedule</button>
       </div>
-      <div class="nav">
-        <button class="nav-btn active" onclick="showScreen('dashboard')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          Today
-        </button>
-        <button class="nav-btn" onclick="showScreen('stats')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          Stats
-        </button>
-        <button class="nav-btn" onclick="showScreen('peers')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Peers
-        </button>
+      <div class="nav" id="navHome"></div>
+    </div>
+
+    <!-- CATEGORIZE -->
+    <div class="screen" id="screen-categorize">
+      <div class="content" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;height:100%;">
+        <h3 style="margin-bottom:8px;">SUBJECT 1 OF 4</h3>
+        <h1 style="margin-bottom:6px;">AP Calculus</h1>
+        <p style="margin-bottom:30px;">How are you working on this subject today?</p>
+
+        <div class="card" style="width:100%;cursor:pointer;border-color:var(--accent);" onclick="categorize('deep')">
+          <div style="font-size:16px;font-weight:800;margin-bottom:4px;">🧠 Deep Work</div>
+          <div style="font-size:13px;color:var(--muted);">Test prep, projects, essays — work that requires undistracted focus</div>
+        </div>
+        <div class="card" style="width:100%;cursor:pointer;" onclick="categorize('light')">
+          <div style="font-size:16px;font-weight:800;margin-bottom:4px;">📋 Light Work</div>
+          <div style="font-size:13px;color:var(--muted);">Assignments, memorization, notes — routine tasks</div>
+        </div>
       </div>
     </div>
 
-    <!-- RITUAL SCREEN -->
-    <div class="screen fade" id="screen-ritual">
+    <!-- ================= UNIVERSAL RITUAL: Environment Lock ================= -->
+    <div class="screen" id="screen-r-lock">
+      <div class="ritual-progress"><div class="seg done"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div>
+      <div class="ritual-center">
+        <div class="ritual-icon">🔒</div>
+        <div class="ritual-title">Environment Lock</div>
+        <div class="ritual-sub">The environment does the willpower work, so you don't have to.</div>
+        <div class="check-row" id="lock1" onclick="toggleCheck('lock1', checkLocks)">
+          <div class="check"></div>
+          <div style="font-size:14px;font-weight:600;">Phone in another room or on airplane mode</div>
+        </div>
+        <div class="check-row" id="lock2" onclick="toggleCheck('lock2', checkLocks)">
+          <div class="check"></div>
+          <div style="font-size:14px;font-weight:600;">Distracting browser tabs / extensions blocked</div>
+        </div>
+        <div class="check-row" id="lock3" style="cursor:default;">
+          <div style="text-align:left;flex:1;">
+            <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Choose your ambient sound</div>
+            <div class="mc-grid">
+              <div class="tag" onclick="selectAmbient(this)">Brown Noise</div>
+              <div class="tag" onclick="selectAmbient(this)">Binaural Beats</div>
+              <div class="tag selected" onclick="selectAmbient(this)">Silence</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:0 24px 24px;">
+        <button class="btn btn-primary" id="lockBtn" disabled onclick="goTo('screen-r-clear')">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Clear desk -->
+    <div class="screen" id="screen-r-clear">
+      <div class="ritual-progress"><div class="seg done"></div><div class="seg done"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div>
+      <div class="ritual-center">
+        <div class="ritual-icon">🧹</div>
+        <div class="ritual-title">Clear Your Desk</div>
+        <div class="ritual-sub">Only what you need for this session should remain in front of you.</div>
+      </div>
+      <div style="padding:0 24px 24px;">
+        <button class="btn btn-primary" onclick="goTo('screen-r-water')">Done</button>
+      </div>
+    </div>
+
+    <!-- Water -->
+    <div class="screen" id="screen-r-water">
+      <div class="ritual-progress"><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div>
+      <div class="ritual-center">
+        <div class="ritual-icon">💧</div>
+        <div class="ritual-title">Obtain a Full Glass of Water</div>
+        <div class="ritual-sub">Hydration supports sustained cognitive performance.</div>
+      </div>
+      <div style="padding:0 24px 24px;">
+        <button class="btn btn-primary" onclick="goTo('screen-r-dump')">Done</button>
+      </div>
+    </div>
+
+    <!-- Brain dump (loading dock) -->
+    <div class="screen" id="screen-r-dump">
+      <div class="ritual-progress"><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div>
       <div class="content">
-        <h3 style="margin-bottom:8px;">Session Start Ritual</h3>
-        <h2 style="margin-bottom:16px;">AP Calc — Problem Sets</h2>
-
-        <div class="goal-banner">
-          <div class="goal-label">Your Goal for AP Calc</div>
-          <div class="goal-text">"Get a 5 on the AP exam in May"</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px;">You are here:</div>
-          <div class="progress-bar-wrap"><div class="progress-bar-fill"></div></div>
-          <div style="font-size:12px;color:var(--muted);margin-top:4px;">45% to goal · 6 days until test</div>
-        </div>
-
-        <h3 style="margin-bottom:12px;">Complete Before Starting</h3>
-
-        <div class="ritual-step" id="ritual1" onclick="toggleRitual('ritual1')">
-          <div class="check"></div>
-          <div>
-            <div style="font-size:15px;font-weight:600;">Clear your desk</div>
-            <div style="font-size:12px;color:var(--muted);">Only what you need for this session</div>
-          </div>
-        </div>
-        <div class="ritual-step" id="ritual2" onclick="toggleRitual('ritual2')">
-          <div class="check"></div>
-          <div>
-            <div style="font-size:15px;font-weight:600;">Water is in reach</div>
-            <div style="font-size:12px;color:var(--muted);">Hydration helps sustained focus</div>
-          </div>
-        </div>
-        <div class="ritual-step" id="ritual3" onclick="toggleRitual('ritual3')">
-          <div class="check"></div>
-          <div>
-            <div style="font-size:15px;font-weight:600;">Phone face-down or out of sight</div>
-            <div style="font-size:12px;color:var(--muted);">Social apps are now blocked</div>
-          </div>
-        </div>
-        <div class="ritual-step" id="ritual4" onclick="toggleRitual('ritual4')">
-          <div class="check"></div>
-          <div>
-            <div style="font-size:15px;font-weight:600;">Open only what you need</div>
-            <div style="font-size:12px;color:var(--muted);">Calculator, textbook, paper</div>
-          </div>
-        </div>
-
-        <div class="tip-bar" style="margin-top:16px;">
-          <div class="tip-icon">💡</div>
-          <div class="tip-text">The first 10 minutes feel hard because your brain hasn't ramped up yet. Commit to starting — not finishing.</div>
-        </div>
+        <div class="ritual-icon" style="text-align:center;">🗑️</div>
+        <h2 style="text-align:center;margin-bottom:8px;">The Loading Dock</h2>
+        <p style="text-align:center;margin-bottom:18px;">Dump everything competing for your attention right now. Once it's written down, your brain can let it go.</p>
+        <textarea rows="6" placeholder="e.g. text Mom back, finish laundry, that argument is still bugging me..."></textarea>
       </div>
       <div style="padding:0 20px 20px;">
-        <button class="btn btn-primary" id="startBtn" onclick="goTo('screen-session')" style="opacity:.4;pointer-events:none;" id="startBtn">
-          Begin Session (tap all 4 items)
-        </button>
-        <button class="btn btn-ghost" style="margin-top:10px;" onclick="goTo('screen-dashboard')">← Back to Schedule</button>
+        <button class="btn btn-primary" onclick="goToDeepOrLight()">Capture &amp; Continue →</button>
       </div>
     </div>
 
-    <!-- SESSION SCREEN -->
-    <div class="screen fade" id="screen-session">
-      <div class="session-header">
-        <div class="subject">AP CALCULUS · DEEP WORK</div>
-        <div class="task-title">Problem Sets 4–6</div>
+    <!-- ================= DEEP WORK ONLY: Goal & substructure ================= -->
+    <div class="screen" id="screen-r-goal">
+      <div class="ritual-progress"><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg"></div><div class="seg"></div></div>
+      <div class="content">
+        <div class="ritual-icon" style="text-align:center;">🎯</div>
+        <h2 style="text-align:center;margin-bottom:8px;">Define Your Single Target</h2>
+        <p style="text-align:center;margin-bottom:14px;">What does "done" look like at the end of this session?</p>
+        <textarea rows="2" id="goalText" placeholder="e.g. Finish problems 12-20 in Chapter 4" oninput="checkGoal()" style="margin-bottom:14px;"></textarea>
+        <h3 style="margin-bottom:8px;">Break it into 3–5 micro-steps</h3>
+        <input type="text" placeholder="1. Re-read worked example" style="margin-bottom:8px;">
+        <input type="text" placeholder="2. Attempt problems 12-15" style="margin-bottom:8px;">
+        <input type="text" placeholder="3. Attempt problems 16-20" style="margin-bottom:8px;">
+        <input type="text" placeholder="4. Check answers, flag mistakes" style="margin-bottom:8px;">
       </div>
+      <div style="padding:0 20px 20px;">
+        <button class="btn btn-primary" id="goalBtn" disabled onclick="goTo('screen-r-depth')">Continue →</button>
+      </div>
+    </div>
 
-      <div class="tip-bar" style="margin:0 20px 4px;">
-        <div class="tip-icon">🎵</div>
-        <div class="tip-text" style="color:var(--muted);">Music is blocked during deep work. It resets your focus ramp every time it plays.</div>
+    <!-- Depth rating + stake -->
+    <div class="screen" id="screen-r-depth">
+      <div class="ritual-progress"><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg"></div></div>
+      <div class="ritual-center">
+        <div class="ritual-icon">⭐</div>
+        <div class="ritual-title">Rate the Intellectual Depth</div>
+        <div class="ritual-sub">How demanding is this session, 1–10?</div>
+        <div class="star-row" id="starRow"></div>
+        <div id="stakeBox" style="display:none;margin-top:10px;padding:14px;background:rgba(108,99,255,.12);border:1px solid var(--accent);border-radius:12px;font-size:13px;font-weight:700;color:var(--accent);">
+          This session requires my full capacity.
+        </div>
+      </div>
+      <div style="padding:0 24px 24px;">
+        <button class="btn btn-primary" id="depthBtn" disabled onclick="goTo('screen-r-breath')">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Breathing -->
+    <div class="screen" id="screen-r-breath">
+      <div class="ritual-progress"><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div></div>
+      <div class="ritual-center">
+        <div class="ritual-icon">🫁</div>
+        <div class="ritual-title">5 Slow, Deep Breaths</div>
+        <div class="ritual-sub">In for 4... out for 6. Find your stillness before you begin.</div>
+      </div>
+      <div style="padding:0 24px 24px;">
+        <button class="btn btn-primary" onclick="goTo('screen-r-incant')">I'm Ready</button>
+      </div>
+    </div>
+
+    <!-- Incantation -->
+    <div class="screen" id="screen-r-incant">
+      <div class="ritual-center">
+        <div class="ritual-icon">🗣️</div>
+        <div class="ritual-title">The Incantation</div>
+        <div class="ritual-sub">Read this aloud. Then confirm.</div>
+        <div class="pledge-box" style="text-align:left;">
+          "For the next <b>50 minutes</b> I will work on <b>Finish problems 12–20 in Chapter 4</b>, and I will not stop for anything less than a genuine emergency."
+        </div>
+      </div>
+      <div style="padding:0 24px 24px;">
+        <button class="btn btn-primary" onclick="goTo('screen-runway')">I Commit</button>
+      </div>
+    </div>
+
+    <!-- Runway -->
+    <div class="screen" id="screen-runway">
+      <div class="content">
+        <div class="ritual-icon" style="text-align:center;">🛫</div>
+        <h2 style="text-align:center;margin-bottom:8px;">The Runway</h2>
+        <p style="text-align:center;margin-bottom:18px;">Two questions before the clock starts.</p>
+        <h3 style="margin-bottom:6px;">What does success look like at the end of this session?</h3>
+        <textarea rows="2" placeholder="e.g. All 8 problems attempted with work shown" style="margin-bottom:16px;"></textarea>
+        <h3 style="margin-bottom:6px;">What is the FIRST physical action you'll take?</h3>
+        <textarea rows="2" placeholder="e.g. Open the textbook to page 142 and re-read the worked example" oninput="checkRunway()"></textarea>
+      </div>
+      <div style="padding:0 20px 20px;">
+        <button class="btn btn-primary" id="runwayBtn" disabled onclick="startSession('deep')">Begin Session →</button>
+      </div>
+    </div>
+
+    <!-- ================= LIGHT WORK ritual continuation ================= -->
+    <div class="screen" id="screen-l-start">
+      <div class="ritual-center">
+        <div class="ritual-icon">📵</div>
+        <div class="ritual-title">Put Your Phone Aside and Begin</div>
+        <div class="ritual-sub">Light work session — assignments, memorization, notes.</div>
+      </div>
+      <div style="padding:0 24px 24px;">
+        <button class="btn btn-primary" onclick="startSession('light')">Begin Session →</button>
+      </div>
+    </div>
+
+    <!-- ================= ACTIVE SESSION ================= -->
+    <div class="screen" id="screen-session">
+      <div class="blitz-banner" id="blitzBanner" style="display:none;">⚡ BLITZ MODE — FATA IS WATCHING</div>
+      <div class="eyes-row" id="eyesRow" style="display:none;">
+        <div class="eye"></div><div class="eye"></div>
+      </div>
+      <div class="session-header">
+        <div class="subject" id="sessSubject">AP CALCULUS · DEEP WORK</div>
+        <div class="task-title" id="sessGoal">Finish problems 12–20</div>
       </div>
 
       <div class="timer-ring-wrap">
         <div class="timer-ring">
-          <svg width="180" height="180" viewBox="0 0 180 180">
-            <circle cx="90" cy="90" r="80" fill="none" stroke="#2e2e40" stroke-width="10"/>
-            <circle cx="90" cy="90" r="80" fill="none" stroke="#6c63ff" stroke-width="10"
-              stroke-dasharray="502.7" stroke-dashoffset="140" stroke-linecap="round" id="timerArc"/>
+          <svg width="160" height="160" viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r="70" fill="none" stroke="#2e2e40" stroke-width="9"/>
+            <circle cx="80" cy="80" r="70" fill="none" stroke="#6c63ff" stroke-width="9"
+              stroke-dasharray="439.8" stroke-dashoffset="0" stroke-linecap="round" id="timerArc"/>
           </svg>
           <div class="timer-label">
-            <div class="timer-digits" id="timerDisplay">36:42</div>
+            <div class="timer-digits" id="timerDisplay">50:00</div>
             <div class="timer-sub">REMAINING</div>
           </div>
         </div>
       </div>
 
       <div class="content" style="padding-top:0;">
-        <div class="break-log">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;">BREAKS TAKEN (0)</div>
-          <div id="breakChips" style="min-height:28px;">
-            <div style="font-size:13px;color:var(--border);">None yet — keep going</div>
+        <div id="pulseBox" style="display:none;" class="card">
+          <h3 style="margin-bottom:8px;">Mid-Session Pulse</h3>
+          <p style="margin-bottom:8px;">Are you on the micro-plan? Which step are you on?</p>
+          <div class="mc-grid">
+            <div class="tag selected" onclick="selectPulse(this)">Step 1</div>
+            <div class="tag" onclick="selectPulse(this)">Step 2</div>
+            <div class="tag" onclick="selectPulse(this)">Step 3</div>
+            <div class="tag" onclick="selectPulse(this)">Off-plan</div>
           </div>
         </div>
+
+        <div id="depthDial" style="display:none;" class="card">
+          <h3 style="margin-bottom:8px;">Quick Depth Check</h3>
+          <p style="margin-bottom:8px;">Rate your depth right now, 1–5</p>
+          <div class="star-row" style="font-size:24px;" id="dialStars"></div>
+        </div>
+
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;">DISTRACTION LOG (<span id="distCount">0</span>)</div>
+        <div id="distChips" style="min-height:24px;margin-bottom:12px;">
+          <div style="font-size:13px;color:var(--border);">None yet</div>
+        </div>
+
         <div class="divider"></div>
         <div style="display:flex;gap:10px;">
-          <button class="btn btn-ghost btn-sm" onclick="takeBreak()" style="flex:1;">Take a Break</button>
-          <button class="btn btn-danger btn-sm" onclick="goTo('screen-review')" style="flex:1;">End Session</button>
+          <button class="btn btn-ghost btn-sm" onclick="logDistraction()" style="flex:1;">⚠ Log Distraction</button>
+          <button class="btn btn-ghost btn-sm" onclick="goTo('screen-breakreason')" style="flex:1;">Take a Break</button>
+        </div>
+        <button class="btn btn-danger btn-sm" style="width:100%;margin-top:10px;" onclick="goTo('screen-review')">End Session</button>
+      </div>
+    </div>
+
+    <!-- Struggle prompt -->
+    <div class="screen" id="screen-struggle">
+      <div class="ritual-center">
+        <div class="ritual-icon">🤔</div>
+        <div class="ritual-title">Let's name it.</div>
+        <div class="ritual-sub">You've flagged 3 distractions in the last 20 minutes. What specifically is hard about this right now?</div>
+        <textarea rows="3" placeholder="e.g. I don't know how to start this argument..." style="text-align:left;"></textarea>
+      </div>
+      <div style="padding:0 24px 24px;">
+        <button class="btn btn-primary" onclick="closeStruggle()">Back to Work</button>
+      </div>
+    </div>
+
+    <!-- Break reason (productive friction) -->
+    <div class="screen" id="screen-breakreason">
+      <div class="content" style="display:flex;flex-direction:column;justify-content:center;height:100%;">
+        <h2 style="margin-bottom:4px;">Why are you taking a break?</h2>
+        <p style="margin-bottom:18px;">Be honest — this trains your future sessions.</p>
+        <div class="card" style="cursor:pointer;" onclick="breakReason('natural')">
+          <div style="font-weight:700;">✅ I hit a natural stopping point</div>
+        </div>
+        <div class="card" style="cursor:pointer;" onclick="breakReason('focus')">
+          <div style="font-weight:700;">😵 My focus broke</div>
+        </div>
+        <div class="card" style="cursor:pointer;" onclick="breakReason('think')">
+          <div style="font-weight:700;">🚶 I need to think away from the screen</div>
+        </div>
+        <div class="card" style="cursor:pointer;" onclick="breakReason('water')">
+          <div style="font-weight:700;">💧 I need water or movement</div>
+        </div>
+        <div id="pushbackBox" style="display:none;" class="card">
+          <div style="font-size:13px;color:var(--yellow);font-weight:700;margin-bottom:10px;">The discomfort is the deep work. Try 5 more minutes before stopping?</div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-primary btn-sm" style="flex:1;" onclick="goTo('screen-session')">5 More Minutes</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="goTo('screen-break')">Take Break Anyway</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- BREAK SCREEN -->
-    <div class="screen fade" id="screen-break">
-      <div class="break-screen-content">
-        <h3>REPLENISHING BREAK</h3>
-        <div class="break-timer" id="breakTimer">5:00</div>
-        <p style="color:var(--muted);">Session resumes automatically. No soft opt-out.</p>
-
-        <div class="allowed-grid">
-          <div class="allowed-item">
-            <div class="icon">🎵</div>
-            <div class="label">Music</div>
-          </div>
-          <div class="allowed-item">
-            <div class="icon">🚶</div>
-            <div class="label">Step away</div>
-          </div>
-          <div class="allowed-item blocked-item">
-            <div class="icon" style="filter:blur(1px);">📱</div>
-            <div class="label">Social</div>
-          </div>
-          <div class="allowed-item blocked-item">
-            <div class="icon" style="filter:blur(1px);">📺</div>
-            <div class="label">YouTube</div>
-          </div>
+    <!-- Break screen -->
+    <div class="screen" id="screen-break">
+      <div class="content" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+        <h3>PRODUCTIVE BREAK</h3>
+        <div style="font-size:60px;font-weight:900;letter-spacing:-3px;color:var(--green);margin:16px 0;" id="breakTimer">5:00</div>
+        <p style="margin-bottom:16px;">Get a snack, stretch, or step outside. Session resumes automatically.</p>
+        <div class="mc-grid" style="width:100%;">
+          <div class="card" style="text-align:center;"><div style="font-size:26px;">🍎</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Snack</div></div>
+          <div class="card" style="text-align:center;"><div style="font-size:26px;">🚶</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Walk</div></div>
+          <div class="card" style="text-align:center;opacity:.35;"><div style="font-size:26px;">📱</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Phone (locked)</div></div>
+          <div class="card" style="text-align:center;opacity:.35;"><div style="font-size:26px;">📺</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Video (locked)</div></div>
         </div>
       </div>
     </div>
 
-    <!-- REVIEW SCREEN -->
-    <div class="screen fade" id="screen-review">
+    <!-- Review -->
+    <div class="screen" id="screen-review">
       <div class="content">
         <h3 style="margin-bottom:8px;">Session Complete</h3>
-        <h2 style="margin-bottom:20px;">AP Calc · 36 min 42 sec</h2>
+        <h2 style="margin-bottom:18px;" id="reviewTitle">AP Calc — Deep Work</h2>
 
         <div class="card">
-          <h3 style="margin-bottom:12px;">Session Stats</h3>
-          <div class="review-stat">
-            <div class="label">Planned duration</div>
-            <div class="value">50 min</div>
+          <h3 style="margin-bottom:10px;">Did you finish your micro-steps?</h3>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="this.style.borderColor='var(--green)';this.style.color='var(--green)'">Yes ✓</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="this.style.borderColor='var(--red)';this.style.color='var(--red)';document.getElementById('failTags').style.display='block'">No</button>
           </div>
-          <div class="review-stat">
-            <div class="label">Actual focus time</div>
-            <div class="value value-yellow">36 min</div>
-          </div>
-          <div class="review-stat">
-            <div class="label">Breaks taken</div>
-            <div class="value value-yellow">2</div>
-          </div>
-          <div class="review-stat">
-            <div class="label">Avg break interval</div>
-            <div class="value">18 min</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h3 style="margin-bottom:10px;">Attention Curve</h3>
-          <div class="attention-chart">
-            <div class="attention-bar" style="height:55%"></div>
-            <div class="attention-bar" style="height:72%"></div>
-            <div class="attention-bar" style="height:80%"></div>
-            <div class="attention-bar" style="height:68%"></div>
-            <div class="attention-bar" style="height:45%"></div>
-            <div class="attention-bar" style="height:38%"></div>
-          </div>
-          <div style="font-size:12px;color:var(--muted);">Intervals shrinking toward end of session. Tomorrow's structure will be tighter.</div>
-        </div>
-
-        <div class="card">
-          <h3 style="margin-bottom:6px;">Did you finish?</h3>
-          <div style="display:flex;gap:10px;margin:12px 0;">
-            <button class="btn btn-ghost btn-sm" onclick="this.style.borderColor='var(--green)';this.style.color='var(--green)'">Yes ✓</button>
-            <button class="btn btn-ghost btn-sm" onclick="this.style.borderColor='var(--red)';this.style.color='var(--red)';document.getElementById('failTags').style.display='block'">No — carry to tomorrow</button>
-          </div>
-          <div id="failTags" style="display:none;">
-            <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">What caused it? (tap all that apply)</div>
+          <div id="failTags" style="display:none;margin-top:10px;">
+            <p style="margin-bottom:8px;">What got in the way?</p>
             <div class="tag-row">
-              <div class="failure-tag" onclick="this.classList.toggle('selected')">Attention collapsed</div>
-              <div class="failure-tag" onclick="this.classList.toggle('selected')">Too hard</div>
-              <div class="failure-tag" onclick="this.classList.toggle('selected')">External distraction</div>
-              <div class="failure-tag" onclick="this.classList.toggle('selected')">Ran out of time</div>
+              <div class="tag warn" onclick="this.classList.toggle('selected')">Attention collapsed</div>
+              <div class="tag warn" onclick="this.classList.toggle('selected')">Material too hard</div>
+              <div class="tag warn" onclick="this.classList.toggle('selected')">External distraction</div>
+              <div class="tag warn" onclick="this.classList.toggle('selected')">Ran out of time</div>
             </div>
           </div>
         </div>
 
-        <button class="btn btn-primary" onclick="goTo('screen-dashboard')">Done → Back to Schedule</button>
+        <div class="card">
+          <h3 style="margin-bottom:10px;">Session Stats</h3>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="font-size:13px;color:var(--muted);">Distractions logged</span><b id="reviewDist">2</b></div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="font-size:13px;color:var(--muted);">Avg. depth rating</span><b>4.2 / 5</b></div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="font-size:13px;color:var(--muted);">A stone has been added 🪨</span><b style="color:var(--accent)">+1</b></div>
+        </div>
+
+        <button class="btn btn-primary" onclick="returnHome()">Done → Back to Plan</button>
         <div style="height:16px;"></div>
       </div>
     </div>
 
-    <!-- STATS SCREEN -->
-    <div class="screen fade" id="screen-stats">
-      <div class="content">
-        <h2 style="margin-bottom:20px;">Your Progress</h2>
+    <!-- BLITZ confirm -->
+    <div class="screen" id="screen-blitzconfirm">
+      <div class="content" style="display:flex;flex-direction:column;justify-content:center;height:100%;text-align:center;">
+        <div style="font-size:48px;margin-bottom:12px;">⚡</div>
+        <h1 style="color:var(--red);margin-bottom:10px;">Enter Blitz Mode?</h1>
+        <p style="margin-bottom:20px;">Blitz mode shortens breaks, increases session intensity, and turns the whole app red. You'll be watched. There is no soft opt-out.</p>
+        <button class="btn btn-blitz" onclick="enterBlitz()">⚡ Activate Blitz Mode</button>
+        <div style="height:10px"></div>
+        <button class="btn btn-ghost" onclick="goTo('screen-home')">Never mind</button>
+      </div>
+    </div>
 
+    <!-- ANALYTICS -->
+    <div class="screen" id="screen-analytics">
+      <div class="content">
+        <h2 style="margin-bottom:18px;">Your Progress</h2>
         <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-val">4🔥</div>
-            <div class="stat-label">Day streak</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-val">72</div>
-            <div class="stat-label">Focus score</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-val">8.4h</div>
-            <div class="stat-label">Deep work this week</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-val">↑23m</div>
-            <div class="stat-label">Avg session length</div>
-          </div>
+          <div class="stat-card"><div class="stat-val">68</div><div class="stat-label">Discipline Score</div></div>
+          <div class="stat-card"><div class="stat-val">74</div><div class="stat-label">Attention Score</div></div>
+          <div class="stat-card"><div class="stat-val">61</div><div class="stat-label">Resilience Score</div></div>
+          <div class="stat-card"><div class="stat-val">0.71</div><div class="stat-label">Hard Work Ratio</div></div>
         </div>
-
         <div class="card">
-          <h3 style="margin-bottom:12px;">Attention Span Trend</h3>
-          <div style="display:flex;align-items:flex-end;gap:6px;height:80px;margin-bottom:8px;">
-            <div style="flex:1;height:40%;background:var(--accent);opacity:.3;border-radius:4px 4px 0 0;"></div>
-            <div style="flex:1;height:52%;background:var(--accent);opacity:.4;border-radius:4px 4px 0 0;"></div>
-            <div style="flex:1;height:55%;background:var(--accent);opacity:.5;border-radius:4px 4px 0 0;"></div>
-            <div style="flex:1;height:65%;background:var(--accent);opacity:.6;border-radius:4px 4px 0 0;"></div>
-            <div style="flex:1;height:72%;background:var(--accent);opacity:.8;border-radius:4px 4px 0 0;"></div>
-            <div style="flex:1;height:80%;background:var(--accent);border-radius:4px 4px 0 0;"></div>
-          </div>
-          <div style="font-size:12px;color:var(--green);font-weight:600;">↑ Avg interval between breaks up 18 min this month 🎉</div>
+          <h3 style="margin-bottom:10px;">Delayed Gratification Score</h3>
+          <p style="margin-bottom:6px;">Avg. time in deep work before first distraction:</p>
+          <div style="font-size:28px;font-weight:800;color:var(--accent);">22 minutes</div>
+          <div style="font-size:12px;color:var(--green);margin-top:4px;">↑ up from 14 minutes last month</div>
         </div>
-
         <div class="card">
-          <h3 style="margin-bottom:12px;">Failure Patterns</h3>
-          <div class="review-stat">
-            <div class="label">Attention collapsed</div>
-            <div class="value value-red">38%</div>
-          </div>
-          <div class="review-stat">
-            <div class="label">External distraction</div>
-            <div class="value value-yellow">29%</div>
-          </div>
-          <div class="review-stat">
-            <div class="label">Material too hard</div>
-            <div class="value value-yellow">22%</div>
-          </div>
-          <div class="review-stat">
-            <div class="label">Ran out of time</div>
-            <div class="value">11%</div>
+          <h3 style="margin-bottom:10px;">Discipline Score breakdown</h3>
+          <p>Session starts, bounce-back rate, deep work completion, and consistency over the last 30 days.</p>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:10px;">Resilience Score breakdown</h3>
+          <p>Recovery lag, failure-spiral length, and bounce-back rate after a missed or incomplete session.</p>
+        </div>
+        <div class="tower-wrap card">
+          <h3 style="margin-bottom:10px;">Discipline Tower — Full View</h3>
+          <div class="tower">
+            <div class="stone"></div><div class="stone"></div><div class="stone"></div>
+            <div class="stone ghost"></div><div class="stone ghost"></div><div class="stone ghost"></div><div class="stone ghost"></div>
           </div>
         </div>
       </div>
-      <div class="nav">
-        <button class="nav-btn" onclick="showScreen('dashboard')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          Today
-        </button>
-        <button class="nav-btn active" onclick="showScreen('stats')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          Stats
-        </button>
-        <button class="nav-btn" onclick="showScreen('peers')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Peers
-        </button>
-      </div>
+      <div class="nav" id="navAnalytics"></div>
     </div>
 
-    <!-- PEERS SCREEN -->
-    <div class="screen fade" id="screen-peers">
+    <!-- COURSE / instruction -->
+    <div class="screen" id="screen-course">
       <div class="content">
-        <h2 style="margin-bottom:4px;">Accountability</h2>
-        <p style="margin-bottom:20px;">Your study group can see your completions.</p>
-
+        <h2 style="margin-bottom:18px;">Your Focus Course</h2>
+        <p style="margin-bottom:14px;">Bite-sized lessons delivered between sessions — not lectures, just what you need right now.</p>
         <div class="card">
-          <h3 style="margin-bottom:12px;">AP Calc Test — 6 days</h3>
-          <div class="peer-row">
-            <div class="avatar" style="background:rgba(108,99,255,.2);color:var(--accent);">AK</div>
-            <div class="peer-info">
-              <div class="peer-name">Alex (you)</div>
-              <div class="peer-sub">4 sessions · 8.4h this week</div>
-            </div>
-            <div class="badge">✅</div>
-          </div>
-          <div class="peer-row">
-            <div class="avatar" style="background:rgba(74,222,128,.2);color:var(--green);">JL</div>
-            <div class="peer-info">
-              <div class="peer-name">Jamie L.</div>
-              <div class="peer-sub">5 sessions · 9.1h this week</div>
-            </div>
-            <div class="badge">🔥</div>
-          </div>
-          <div class="peer-row">
-            <div class="avatar" style="background:rgba(251,191,36,.2);color:var(--yellow);">MR</div>
-            <div class="peer-info">
-              <div class="peer-name">Marcus R.</div>
-              <div class="peer-sub">2 sessions · 3.2h this week</div>
-            </div>
-            <div class="badge">😬</div>
-          </div>
-          <div class="peer-row">
-            <div class="avatar" style="background:rgba(248,113,113,.2);color:var(--red);">SP</div>
-            <div class="peer-info">
-              <div class="peer-name">Sofia P.</div>
-              <div class="peer-sub">Bailed on 2 sessions today</div>
-            </div>
-            <div class="badge">💀</div>
-          </div>
+          <div class="pill pill-deep" style="margin-bottom:8px;">LESSON 1 · UNLOCKED</div>
+          <h3 style="color:var(--text);margin-bottom:6px;font-size:15px;">Why Your Brain Resists Starting</h3>
+          <p>The first 10 minutes feel hard because your brain hasn't ramped up yet — that's the "attention residue" effect, not a lack of motivation.</p>
         </div>
-
-        <div class="card" style="background:rgba(108,99,255,.08);border-color:rgba(108,99,255,.2);">
-          <div style="font-size:13px;color:var(--accent);font-weight:700;margin-bottom:4px;">🏆 Jamie is ahead of you</div>
-          <div style="font-size:14px;">Complete today's session to close the gap before the test.</div>
+        <div class="card">
+          <div class="pill pill-deep" style="margin-bottom:8px;">LESSON 2 · UNLOCKED</div>
+          <h3 style="color:var(--text);margin-bottom:6px;font-size:15px;">The Zeigarnik Effect</h3>
+          <p>Unfinished tasks rehearse themselves in your mind until they're written down. That's why we capture them before every session.</p>
+        </div>
+        <div class="card" style="opacity:.5;">
+          <div class="pill pill-light" style="margin-bottom:8px;">LESSON 3 · LOCKED</div>
+          <h3 style="color:var(--text);margin-bottom:6px;font-size:15px;">Training Your Boredom Tolerance</h3>
+          <p>Unlocks after 3 completed deep work sessions.</p>
         </div>
       </div>
-      <div class="nav">
-        <button class="nav-btn" onclick="showScreen('dashboard')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          Today
-        </button>
-        <button class="nav-btn" onclick="showScreen('stats')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          Stats
-        </button>
-        <button class="nav-btn active" onclick="showScreen('peers')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Peers
-        </button>
-      </div>
+      <div class="nav" id="navCourse"></div>
     </div>
 
-  </div><!-- end mainApp -->
-</div><!-- end phone -->
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
 
 <script>
-  // ---- Nav between onboarding and screens ----
-  function goTo(id) {
-    // Onboarding screens
-    const onboards = ['onboard1','onboard2','onboard3','onboard4'];
-    const appScreens = ['screen-dashboard','screen-ritual','screen-session','screen-break','screen-review','screen-stats','screen-peers'];
+  // ================= STATE =================
+  let state = {
+    blitz: false,
+    distCount: 0,
+    sessionType: 'deep',
+    sessionSeconds: 3000,
+    sessionTotal: 3000,
+    breakSeconds: 300,
+  };
 
-    if (onboards.includes(id)) {
-      onboards.forEach(s => { document.getElementById(s).classList.remove('active'); });
-      document.getElementById(id).classList.add('active');
-    } else if (appScreens.includes(id)) {
-      appScreens.forEach(s => {
-        const el = document.getElementById(s);
-        if (el) { el.classList.remove('active'); }
-      });
-      const target = document.getElementById(id);
-      if (target) { target.classList.add('active'); }
-
-      // If going to break, start countdown
-      if (id === 'screen-break') startBreakTimer();
+  // ---------- Onboarding nav ----------
+  const obSteps = ['ob-1','ob-2','ob-3','ob-4','ob-5','ob-6','ob-7','ob-8','ob-9','ob-10','ob-11','ob-12','ob-13'];
+  function buildDots() {
+    for (let i=0;i<10;i++) {
+      const dotsHolder = document.getElementById(i===0?'dots':'dots'+(i+1));
+      if (!dotsHolder) continue;
+      let html = '';
+      for (let j=0;j<10;j++) {
+        let cls = 'dot-step';
+        if (j < i) cls += ' done';
+        if (j === i) cls += ' active';
+        html += `<div class="${cls}"></div>`;
+      }
+      dotsHolder.innerHTML = html;
     }
   }
+  buildDots();
 
-  function finishOnboarding() {
-    document.querySelectorAll('.onboard-screen').forEach(s => s.style.display = 'none');
-    document.getElementById('statusBar').style.display = 'flex';
-    const main = document.getElementById('mainApp');
-    main.style.display = 'flex';
-    main.classList.add('fade');
+  function next(id) {
+    obSteps.forEach(s => document.getElementById(s).classList.remove('active'));
+    document.getElementById(id).classList.add('active');
   }
 
-  function showScreen(name) {
-    goTo('screen-' + name);
-    // update nav active
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    const screens = document.querySelectorAll('.screen');
-    screens.forEach(s => {
-      const nav = s.querySelector('.nav-btn[onclick*="' + name + '"]');
-      if (nav) nav.classList.add('active');
-    });
-  }
-
-  // ---- Onboarding option select ----
   function selectOption(btn, screenId) {
     const screen = document.getElementById(screenId);
     screen.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
   }
 
-  // ---- Ritual checklist ----
-  let ritualDone = 0;
-  function toggleRitual(id) {
-    const step = document.getElementById(id);
-    const wasDone = step.classList.contains('done');
-    step.classList.toggle('done');
-    ritualDone += wasDone ? -1 : 1;
-    const btn = document.getElementById('startBtn');
-    if (ritualDone >= 4) {
-      btn.style.opacity = '1';
-      btn.style.pointerEvents = 'auto';
-      btn.textContent = 'Begin Session →';
+  function addClassField() {
+    const div = document.createElement('input');
+    div.type = 'text';
+    div.placeholder = 'e.g. Biology';
+    div.style.marginBottom = '8px';
+    document.getElementById('classList').appendChild(div);
+  }
+  ['AP Calculus','AP US History','Spanish III'].forEach(c => {
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.value = c; inp.style.marginBottom = '8px';
+    document.getElementById('classList').appendChild(inp);
+  });
+
+  function updateTime(v) {
+    const hrs = (v/60).toFixed(1);
+    document.getElementById('timeVal').textContent = hrs + ' hrs';
+  }
+  function updateFocus(v) {
+    document.getElementById('focusVal').textContent = v + ' min';
+  }
+  function updateLater(v) {
+    const labels = ['Rarely','Sometimes','Often','Almost every assignment'];
+    document.getElementById('laterVal').textContent = labels[v-1];
+  }
+
+  function finishOnboarding() {
+    document.querySelectorAll('.onboard-screen').forEach(s => s.style.display = 'none');
+    document.getElementById('statusBar').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'flex';
+    buildSchedule();
+    buildNav();
+  }
+
+  // ---------- Schedule ----------
+  const schedule = [
+    {time:'4:00 PM', name:'AP Calculus — Problem Sets', type:'deep', dur:50},
+    {time:'4:55 PM', name:'Break', type:'break', dur:10},
+    {time:'5:05 PM', name:'Spanish III — Vocab Review', type:'light', dur:25},
+    {time:'5:30 PM', name:'AP US History — Reading', type:'light', dur:25},
+    {time:'6:00 PM', name:'AP Calculus — Test Review', type:'deep', dur:45},
+  ];
+  function buildSchedule() {
+    const el = document.getElementById('scheduleList');
+    el.innerHTML = schedule.map(item => {
+      let dot = 'dot', pill = '';
+      if (item.type === 'deep') { dot='dot'; pill = '<span class="pill pill-deep">Deep Work · '+item.dur+' min</span>'; }
+      if (item.type === 'light') { dot='dot dot-yellow'; pill = '<span class="pill pill-light">Light Work · '+item.dur+' min</span>'; }
+      if (item.type === 'break') { dot='dot dot-green'; pill = '<span class="pill pill-break">Break · '+item.dur+' min</span>'; }
+      return `<div class="schedule-item">
+        <div class="time-col">${item.time}</div>
+        <div class="${dot}"></div>
+        <div class="task-col"><div class="task-name">${item.name}</div>${pill}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ---------- Bottom Nav ----------
+  function navHTML(active) {
+    const items = [
+      {id:'home', label:'Today', ic:'🏠'},
+      {id:'course', label:'Course', ic:'📘'},
+      {id:'analytics', label:'Analytics', ic:'📊'},
+    ];
+    return items.map(i => `<button class="nav-btn ${i.id===active?'active':''}" onclick="goTo('screen-${i.id}');buildNav('${i.id}')"><span class="ic">${i.ic}</span>${i.label}</button>`).join('');
+  }
+  function buildNav(active) {
+    active = active || 'home';
+    document.getElementById('navHome').innerHTML = navHTML(active);
+    document.getElementById('navAnalytics').innerHTML = navHTML(active);
+    document.getElementById('navCourse').innerHTML = navHTML(active);
+  }
+
+  // ---------- Generic nav ----------
+  const allScreens = ['screen-home','screen-categorize','screen-r-lock','screen-r-clear','screen-r-water','screen-r-dump',
+    'screen-r-goal','screen-r-depth','screen-r-breath','screen-r-incant','screen-runway','screen-l-start',
+    'screen-session','screen-struggle','screen-breakreason','screen-break','screen-review','screen-blitzconfirm',
+    'screen-analytics','screen-course'];
+
+  function goTo(id) {
+    allScreens.forEach(s => {
+      const el = document.getElementById(s);
+      if (el) el.classList.remove('active');
+    });
+    document.getElementById(id).classList.add('active');
+    if (id === 'screen-break') startBreakTimer();
+    if (id === 'screen-session') startSessionTimer();
+  }
+
+  // ---------- Categorize ----------
+  function categorize(type) {
+    state.sessionType = type;
+    document.getElementById('pushbackBox').style.display = 'none';
+    goTo('screen-r-lock');
+  }
+
+  // ---------- Locks ----------
+  function toggleCheck(id, cb) {
+    const row = document.getElementById(id);
+    row.classList.toggle('done');
+    if (cb) cb();
+  }
+  function checkLocks() {
+    const ok = document.getElementById('lock1').classList.contains('done')
+      && document.getElementById('lock2').classList.contains('done');
+    document.getElementById('lockBtn').disabled = !ok;
+  }
+  function selectAmbient(el) {
+    el.parentElement.querySelectorAll('.tag').forEach(t=>t.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function goToDeepOrLight() {
+    if (state.sessionType === 'deep') {
+      goTo('screen-r-goal');
     } else {
-      btn.style.opacity = '.4';
-      btn.style.pointerEvents = 'none';
-      btn.textContent = 'Begin Session (tap all ' + (4 - ritualDone) + ' remaining)';
+      goTo('screen-l-start');
     }
   }
 
-  // ---- Session timer ----
-  let sessionSeconds = 2202; // 36:42
-  let sessionInterval;
-  let breakCount = 0;
-  const breakTimes = [];
+  // Goal text check
+  function checkGoal() {
+    const v = document.getElementById('goalText').value.trim();
+    document.getElementById('goalBtn').disabled = v.length === 0;
+  }
 
+  // Star rating (depth)
+  let depthRating = 0;
+  (function buildStars(){
+    const row = document.getElementById('starRow');
+    for (let i=1;i<=10;i++){
+      const s = document.createElement('span');
+      s.className = 'star'; s.textContent = '★'; s.dataset.v = i;
+      s.onclick = () => setDepth(i);
+      row.appendChild(s);
+    }
+  })();
+  function setDepth(v) {
+    depthRating = v;
+    document.querySelectorAll('#starRow .star').forEach(s => {
+      s.classList.toggle('on', +s.dataset.v <= v);
+    });
+    document.getElementById('depthBtn').disabled = false;
+    document.getElementById('stakeBox').style.display = v >= 7 ? 'block' : 'none';
+  }
+
+  function checkRunway() {
+    document.getElementById('runwayBtn').disabled = false;
+  }
+
+  // ---------- Start session ----------
+  let pulseShown = false, dialShown = false;
+  function startSession(type) {
+    const subj = document.getElementById('sessSubject');
+    const goal = document.getElementById('sessGoal');
+    if (type === 'deep') {
+      subj.textContent = 'AP CALCULUS · DEEP WORK';
+      const g = document.getElementById('goalText').value.trim() || 'Finish problems 12–20';
+      goal.textContent = g;
+      state.sessionTotal = 50*60;
+    } else {
+      subj.textContent = 'SPANISH III · LIGHT WORK';
+      goal.textContent = 'Vocab Review';
+      state.sessionTotal = 25*60;
+    }
+    state.sessionSeconds = state.sessionTotal;
+    state.distCount = 0;
+    pulseShown = false; dialShown = false;
+    document.getElementById('distCount').textContent = '0';
+    document.getElementById('distChips').innerHTML = '<div style="font-size:13px;color:var(--border);">None yet</div>';
+    document.getElementById('pulseBox').style.display = 'none';
+    document.getElementById('depthDial').style.display = 'none';
+    goTo('screen-session');
+  }
+
+  // ---------- Session timer ----------
+  let sessionInterval;
   function startSessionTimer() {
     clearInterval(sessionInterval);
+    updateTimerDisplay();
     sessionInterval = setInterval(() => {
-      if (sessionSeconds > 0) sessionSeconds--;
-      const m = Math.floor(sessionSeconds / 60);
-      const s = sessionSeconds % 60;
-      document.getElementById('timerDisplay').textContent =
-        String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-      // Update arc: 50min = 3000s total. current = sessionSeconds
-      const pct = sessionSeconds / 3000;
-      const circumference = 2 * Math.PI * 80;
-      const offset = circumference * (1 - pct);
-      document.getElementById('timerArc').setAttribute('stroke-dashoffset', offset);
-    }, 1000);
-  }
-
-  function takeBreak() {
-    clearInterval(sessionInterval);
-    breakCount++;
-    const el = document.getElementById('breakChips');
-    const mins = Math.floor((3000 - sessionSeconds) / 60);
-    const chip = document.createElement('span');
-    chip.className = 'break-chip';
-    chip.textContent = `Break ${breakCount} at ${mins}m`;
-    el.innerHTML = '';
-    el.appendChild(chip);
-    // update break log label
-    el.previousElementSibling.textContent = `BREAKS TAKEN (${breakCount})`;
-    goTo('screen-break');
-  }
-
-  // ---- Break timer ----
-  let breakSeconds = 300; // 5 min
-  let breakInterval;
-
-  function startBreakTimer() {
-    clearBreakTimer();
-    breakSeconds = 300;
-    breakInterval = setInterval(() => {
-      if (breakSeconds > 0) {
-        breakSeconds--;
-        const m = Math.floor(breakSeconds / 60);
-        const s = breakSeconds % 60;
-        document.getElementById('breakTimer').textContent =
-          String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-      } else {
-        clearBreakTimer();
-        goTo('screen-session');
-        startSessionTimer();
+      if (state.sessionSeconds > 0) state.sessionSeconds--;
+      updateTimerDisplay();
+      const elapsed = state.sessionTotal - state.sessionSeconds;
+      if (!pulseShown && state.sessionTotal > 1800 && elapsed >= state.sessionTotal/2) {
+        document.getElementById('pulseBox').style.display = 'block';
+        pulseShown = true;
+      }
+      if (!dialShown && elapsed >= 15) {
+        buildDial();
+        document.getElementById('depthDial').style.display = 'block';
+        dialShown = true;
+      }
+      if (state.sessionSeconds <= 0) {
+        clearInterval(sessionInterval);
+        goTo('screen-review');
       }
     }, 1000);
   }
-
-  function clearBreakTimer() {
-    clearInterval(breakInterval);
+  function updateTimerDisplay() {
+    const m = Math.floor(state.sessionSeconds/60);
+    const s = state.sessionSeconds%60;
+    document.getElementById('timerDisplay').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    const pct = state.sessionSeconds / state.sessionTotal;
+    const c = 2*Math.PI*70;
+    document.getElementById('timerArc').setAttribute('stroke-dashoffset', c*(1-pct));
+    document.getElementById('timerArc').setAttribute('stroke', state.blitz ? '#f87171' : '#6c63ff');
+  }
+  function buildDial() {
+    const row = document.getElementById('dialStars');
+    row.innerHTML = '';
+    for (let i=1;i<=5;i++){
+      const s = document.createElement('span');
+      s.className='star'; s.textContent='★'; s.dataset.v=i;
+      s.onclick = () => { row.querySelectorAll('.star').forEach(x=>x.classList.toggle('on', +x.dataset.v<=i)); };
+      row.appendChild(s);
+    }
+  }
+  function selectPulse(el) {
+    el.parentElement.querySelectorAll('.tag').forEach(t=>t.classList.remove('selected'));
+    el.classList.add('selected');
   }
 
-  // ---- Clock ----
+  // ---------- Distractions / struggle ----------
+  function logDistraction() {
+    state.distCount++;
+    document.getElementById('distCount').textContent = state.distCount;
+    const el = document.getElementById('distChips');
+    if (state.distCount === 1) el.innerHTML = '';
+    const chip = document.createElement('span');
+    chip.className = 'tag'; chip.style.marginRight='4px'; chip.style.marginBottom='4px';
+    chip.style.display='inline-block';
+    chip.textContent = '⚠ ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    el.appendChild(chip);
+    if (state.distCount >= 3) {
+      clearInterval(sessionInterval);
+      goTo('screen-struggle');
+    }
+  }
+  function closeStruggle() {
+    state.distCount = 0;
+    document.getElementById('distCount').textContent = '0';
+    document.getElementById('distChips').innerHTML = '<div style="font-size:13px;color:var(--border);">None yet</div>';
+    goTo('screen-session');
+  }
+
+  // ---------- Break flow ----------
+  function breakReason(type) {
+    if (type === 'natural' || type === 'water') {
+      goTo('screen-break');
+    } else {
+      document.getElementById('pushbackBox').style.display = 'block';
+    }
+  }
+  let breakInterval;
+  function startBreakTimer() {
+    clearInterval(breakInterval);
+    state.breakSeconds = state.blitz ? 120 : 300;
+    updateBreakDisplay();
+    breakInterval = setInterval(() => {
+      if (state.breakSeconds > 0) state.breakSeconds--;
+      updateBreakDisplay();
+      if (state.breakSeconds <= 0) {
+        clearInterval(breakInterval);
+        goTo('screen-session');
+      }
+    }, 1000);
+  }
+  function updateBreakDisplay() {
+    const m = Math.floor(state.breakSeconds/60);
+    const s = state.breakSeconds%60;
+    document.getElementById('breakTimer').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  }
+
+  // ---------- Review / return home ----------
+  function returnHome() {
+    document.getElementById('reviewDist').textContent = state.distCount;
+    goTo('screen-home');
+    buildNav('home');
+  }
+
+  // ---------- Blitz mode ----------
+  function enterBlitz() {
+    state.blitz = true;
+    document.getElementById('app').classList.add('blitz');
+    document.getElementById('blitzBanner').style.display = 'block';
+    document.getElementById('eyesRow').style.display = 'flex';
+    showToast('⚡ Blitz Mode activated. Sessions are shorter, breaks are tighter, and Fata is watching.');
+    document.getElementById('sessSubject').textContent = 'AP CALCULUS · BLITZ MODE';
+    document.getElementById('sessGoal').textContent = 'Drill Chapters 1–6 review packet';
+    state.sessionTotal = 25*60;
+    state.sessionSeconds = state.sessionTotal;
+    state.distCount = 0;
+    pulseShown = false; dialShown = false;
+    document.getElementById('distCount').textContent = '0';
+    document.getElementById('distChips').innerHTML = '<div style="font-size:13px;color:var(--border);">None yet</div>';
+    document.getElementById('pulseBox').style.display = 'none';
+    document.getElementById('depthDial').style.display = 'none';
+    goTo('screen-session');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 3500);
+  }
+
+  // ---------- Clock ----------
   function updateClock() {
     const now = new Date();
-    const h = now.getHours();
-    const m = String(now.getMinutes()).padStart(2,'0');
-    document.getElementById('clock').textContent = `${h}:${m}`;
+    document.getElementById('clock').textContent = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
   }
   updateClock();
   setInterval(updateClock, 30000);
-
-  // Start session timer when that screen becomes active
-  const origGoTo = goTo;
-  window.goTo = function(id) {
-    origGoTo(id);
-    if (id === 'screen-session') startSessionTimer();
-    if (id !== 'screen-session' && id !== 'screen-break') clearInterval(sessionInterval);
-  };
 </script>
 </body>
 </html>
