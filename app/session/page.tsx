@@ -1,71 +1,122 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { demoSubjects } from '@/lib/demo-data';
+import { loadSchedule, saveSchedule, type ScheduleItem } from '@/lib/schedule';
+import { hasCompletedIntro } from '@/lib/course';
 
 type Stage =
-  | 'setup'
-  | 'environment'
+  | 'loading'
+  | 'needs-intro'
+  | 'no-schedule'
+  | 'category-pick'
   | 'braindump'
   | 'goal'
   | 'breathing'
-  | 'runway'
+  | 'incantation'
+  | 'environment'
   | 'active'
+  | 'need-more-time'
   | 'break-reason'
   | 'break'
-  | 'review';
+  | 'subject-review'
+  | 'session-complete';
 
-const ENV_ITEMS = ['Phone in another room (or face-down, on silent)', 'Close all unrelated tabs', 'Desk cleared of clutter', 'Water within reach'];
-const AMBIENT = ['Silence', 'Rain', 'Cafe Noise', 'Lo-fi'];
+const ENV_ITEMS = ['Desk cleared of clutter', 'Phone in another room or face-down', 'Close all unrelated tabs', 'Water within reach'];
 const BREAK_REASONS = [
-  { id: 'natural', label: "I hit my goal — natural break" },
+  { id: 'natural', label: "I'm done with this subject for now" },
   { id: 'focus_broke', label: 'My focus broke' },
-  { id: 'need_to_think', label: 'I need to think something through' },
+  { id: 'need_to_think', label: 'I need to step away to think something through' },
   { id: 'water_movement', label: 'I need water / to move' },
 ];
+const BLOCKER_TAGS = ['Got distracted by phone', 'Got distracted by something else', 'Lost motivation', 'Ran out of time'];
 
 export default function SessionPage() {
+  const router = useRouter();
   const supabase = createClient();
-  const [stage, setStage] = useState<Stage>('setup');
-  const [sessionType, setSessionType] = useState<'deep' | 'light'>('deep');
-  const [subject, setSubject] = useState(demoSubjects[0]?.name ?? 'Study');
 
-  const [checks, setChecks] = useState<boolean[]>(ENV_ITEMS.map(() => false));
-  const [ambient, setAmbient] = useState('Silence');
+  const [stage, setStage] = useState<Stage>('loading');
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [category, setCategory] = useState<'deep' | 'light' | null>(null);
+  const [queue, setQueue] = useState<ScheduleItem[]>([]);
+  const [subjectIdx, setSubjectIdx] = useState(0);
+
   const [brainDump, setBrainDump] = useState('');
+  const [microSteps, setMicroSteps] = useState('');
   const [goal, setGoal] = useState('');
   const [depth, setDepth] = useState(5);
+  const [checks, setChecks] = useState<boolean[]>(ENV_ITEMS.map(() => false));
 
-  const planned = sessionType === 'deep' ? 50 * 60 : 25 * 60;
-  const [secondsLeft, setSecondsLeft] = useState(planned);
-  const [distractions, setDistractions] = useState(0);
-  const [showStruggle, setShowStruggle] = useState(false);
-  const startedAt = useRef<string | null>(null);
+  const [totalSecondsLeft, setTotalSecondsLeft] = useState(0);
+  const [subjectSecondsLeft, setSubjectSecondsLeft] = useState(0);
 
   const [breakReason, setBreakReason] = useState<string | null>(null);
-  const [breakSeconds, setBreakSeconds] = useState(300);
+  const [breakSeconds, setBreakSeconds] = useState(0);
+  const [breakTimestamps, setBreakTimestamps] = useState<number[]>([]);
+  const [showBreakWarning, setShowBreakWarning] = useState(false);
+  const [showFocusPushback, setShowFocusPushback] = useState(false);
 
-  const [finishTag, setFinishTag] = useState<'finished' | 'partial' | 'failed' | null>(null);
+  const [breaksThisSubject, setBreaksThisSubject] = useState(0);
+  const [subjectBreaks, setSubjectBreaks] = useState<{ reason: string; pushed_back: boolean; taken_at_seconds: number; planned_seconds: number }[]>([]);
+  const [reviewFinished, setReviewFinished] = useState<boolean | null>(null);
+  const [reviewBlocker, setReviewBlocker] = useState<string | null>(null);
 
-  // Active session countdown
+  // ---- load schedule on mount ----
   useEffect(() => {
-    if (stage !== 'active') return;
-    if (secondsLeft <= 0) {
-      setStage('break-reason');
-      setBreakReason('natural');
+    if (!hasCompletedIntro()) {
+      setStage('needs-intro');
       return;
     }
-    const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [stage, secondsLeft]);
+    const s = loadSchedule();
+    if (!s || !s.items.length) {
+      setStage('no-schedule');
+      return;
+    }
+    setSchedule(s.items);
+    const deepLeft = s.items.some((i) => i.category === 'deep' && !i.done);
+    const lightLeft = s.items.some((i) => i.category === 'light' && !i.done);
+    if (deepLeft && lightLeft) {
+      setStage('category-pick');
+    } else if (deepLeft) {
+      beginCategory('deep', s.items);
+    } else if (lightLeft) {
+      beginCategory('light', s.items);
+    } else {
+      setStage('session-complete');
+    }
+  }, []);
 
-  // Break countdown
+  function beginCategory(cat: 'deep' | 'light', items: ScheduleItem[]) {
+    const q = items.filter((i) => i.category === cat && !i.done);
+    setCategory(cat);
+    setQueue(q);
+    setSubjectIdx(0);
+    setTotalSecondsLeft(q.reduce((s, i) => s + i.minutes * 60, 0));
+    setSubjectSecondsLeft(q[0].minutes * 60);
+    setStage('braindump');
+  }
+
+  // ---- active timers ----
+  useEffect(() => {
+    if (stage !== 'active') return;
+    if (subjectSecondsLeft <= 0) {
+      setStage('need-more-time');
+      return;
+    }
+    const t = setTimeout(() => {
+      setSubjectSecondsLeft((s) => s - 1);
+      setTotalSecondsLeft((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [stage, subjectSecondsLeft]);
+
+  // ---- break countdown ----
   useEffect(() => {
     if (stage !== 'break') return;
     if (breakSeconds <= 0) {
-      setStage('review');
+      setStage('active');
       return;
     }
     const t = setTimeout(() => setBreakSeconds((s) => s - 1), 1000);
@@ -78,94 +129,292 @@ export default function SessionPage() {
     return `${m}:${sec.toString().padStart(2, '0')}`;
   }
 
+  const currentSubject = queue[subjectIdx];
   const radius = 80;
   const circumference = 2 * Math.PI * radius;
-  const progress = 1 - secondsLeft / planned;
+  const subjectTotal = currentSubject ? currentSubject.minutes * 60 : 1;
+  const progress = currentSubject ? 1 - subjectSecondsLeft / subjectTotal : 0;
 
-  function logDistraction() {
-    const next = distractions + 1;
-    setDistractions(next);
-    if (next >= 3) setShowStruggle(true);
-  }
-
-  function startSession() {
-    startedAt.current = new Date().toISOString();
-    setSecondsLeft(planned);
+  function startActive() {
     setStage('active');
   }
 
-  async function finishSession(tag: 'finished' | 'partial' | 'failed') {
-    setFinishTag(tag);
+  function requestBreak() {
+    setStage('break-reason');
+    setBreakReason(null);
+  }
+
+  function confirmBreakReason(reasonId: string) {
+    if (reasonId === 'focus_broke') {
+      setShowFocusPushback(true);
+      setBreakReason(reasonId);
+      return;
+    }
+    actuallyTakeBreak(reasonId);
+  }
+
+  function actuallyTakeBreak(reasonId: string) {
+    setShowFocusPushback(false);
+    const now = Date.now();
+    const recent = breakTimestamps.filter((t) => now - t < 60 * 60 * 1000);
+    const updated = [...recent, now];
+    setBreakTimestamps(updated);
+
+    if (category === 'deep' && recent.length >= 1) {
+      setShowBreakWarning(true);
+    }
+
+    setBreaksThisSubject((b) => b + 1);
+    const seconds = reasonId === 'need_to_think' ? 600 : category === 'deep' ? 300 : 120;
+    setBreakSeconds(seconds);
+    setSubjectBreaks((prev) => [
+      ...prev,
+      {
+        reason: reasonId,
+        pushed_back: reasonId === 'focus_broke' && breakReason === 'focus_broke',
+        taken_at_seconds: subjectTotal - subjectSecondsLeft,
+        planned_seconds: seconds,
+      },
+    ]);
+    setStage('break');
+  }
+
+  function endBreakEarly() {
+    setSubjectBreaks((prev) => {
+      if (!prev.length) return prev;
+      const last = prev[prev.length - 1];
+      const updated = [...prev.slice(0, -1), { ...last, planned_seconds: last.planned_seconds - breakSeconds }];
+      return updated;
+    });
+    setBreakSeconds(0);
+  }
+
+  function addTime(minutes: number) {
+    setSubjectSecondsLeft(minutes * 60);
+    setTotalSecondsLeft((s) => s + minutes * 60);
+    setStage('active');
+  }
+
+  function moveOnToReview() {
+    setStage('subject-review');
+  }
+
+  async function submitReview() {
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from('sessions').insert({
-          user_id: user.id,
-          session_type: sessionType,
-          goal,
-          depth_rating: sessionType === 'deep' ? depth : null,
-          planned_seconds: planned,
-          actual_seconds: planned - secondsLeft,
-          brain_dump: brainDump,
-          finished_goal: tag === 'finished',
-          started_at: startedAt.current,
-          ended_at: new Date().toISOString(),
-        });
+      if (user && currentSubject) {
+        const { data: sessionRow } = await supabase
+          .from('sessions')
+          .insert({
+            user_id: user.id,
+            subject_id: currentSubject.id,
+            session_type: category,
+            goal: category === 'deep' ? goal : microSteps,
+            micro_steps: microSteps ? microSteps.split('\n').filter((l) => l.trim()) : null,
+            depth_rating: category === 'deep' ? depth : null,
+            planned_seconds: subjectTotal,
+            actual_seconds: subjectTotal - subjectSecondsLeft,
+            brain_dump: brainDump,
+            finished_goal: reviewFinished,
+            failure_tags: reviewBlocker ? [reviewBlocker] : [],
+            started_at: new Date(Date.now() - (subjectTotal - subjectSecondsLeft) * 1000).toISOString(),
+            ended_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+
+        if (sessionRow && subjectBreaks.length) {
+          await supabase.from('breaks').insert(
+            subjectBreaks.map((b) => ({
+              session_id: sessionRow.id,
+              reason: b.reason,
+              pushed_back: b.pushed_back,
+              taken_at_seconds: b.taken_at_seconds,
+              duration_seconds: b.planned_seconds,
+            })),
+          );
+        }
       }
     } catch {
-      // demo mode — nothing to persist
+      // demo mode
     }
-    setStage('review');
+
+    // mark this subject done in schedule
+    const updatedSchedule = schedule.map((i) => (i.id === currentSubject.id ? { ...i, done: true } : i));
+    setSchedule(updatedSchedule);
+    saveSchedule(updatedSchedule);
+
+    setReviewFinished(null);
+    setReviewBlocker(null);
+    setBreaksThisSubject(0);
+    setSubjectBreaks([]);
+
+    if (subjectIdx + 1 < queue.length) {
+      setSubjectIdx((i) => i + 1);
+      setSubjectSecondsLeft(queue[subjectIdx + 1].minutes * 60);
+      setStage('active');
+    } else {
+      setStage('session-complete');
+    }
   }
+
+  // ===================== RENDER =====================
+
+  if (stage === 'loading') return null;
 
   return (
     <main className="flex min-h-screen flex-col px-6 py-8">
-      {/* SETUP */}
-      {stage === 'setup' && (
-        <div className="flex flex-1 flex-col">
-          <h1 className="mb-1 font-serif text-2xl">New Session</h1>
-          <p className="mb-6 text-sm text-muted">Choose what you're working on.</p>
-
-          <label className="mb-1 text-xs uppercase tracking-wide text-muted">Subject</label>
-          <select
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="mb-5 rounded-lg border border-border bg-panel px-4 py-3 text-sm outline-none focus:border-accent"
-          >
-            {demoSubjects.map((s) => (
-              <option key={s.id} value={s.name}>{s.name}</option>
-            ))}
-          </select>
-
-          <label className="mb-2 text-xs uppercase tracking-wide text-muted">Session type</label>
-          <div className="mb-6 grid grid-cols-2 gap-3">
-            <button
-              onClick={() => setSessionType('deep')}
-              className={`rounded-xl2 border p-4 text-left ${sessionType === 'deep' ? 'border-accent bg-panel2' : 'border-border bg-panel'}`}
-            >
-              <div className="font-serif text-lg">Deep Work</div>
-              <div className="text-xs text-muted">50 min · full ritual</div>
-            </button>
-            <button
-              onClick={() => setSessionType('light')}
-              className={`rounded-xl2 border p-4 text-left ${sessionType === 'light' ? 'border-accent bg-panel2' : 'border-border bg-panel'}`}
-            >
-              <div className="font-serif text-lg">Light Work</div>
-              <div className="text-xs text-muted">25 min · quick focus</div>
-            </button>
-          </div>
-
-          <div className="flex-1" />
-          <button onClick={() => setStage('environment')} className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
-            Begin Ritual →
-          </button>
-          <Link href="/home" className="mt-3 text-center text-sm text-muted">Cancel</Link>
+      {/* NEEDS INTRO COURSE */}
+      {stage === 'needs-intro' && (
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <h2 className="mb-2 font-serif text-xl">Watch the intro lesson first</h2>
+          <p className="mb-6 text-sm text-muted">
+            Before your first work session, watch the short intro on how DeskHabits works and the science behind deep focus.
+          </p>
+          <Link href="/course" className="w-full rounded-xl2 bg-accent py-4 text-center font-serif text-lg font-semibold text-ink">
+            Go to Course →
+          </Link>
+          <Link href="/home" className="mt-3 text-sm text-muted">Back to Home</Link>
         </div>
       )}
 
-      {/* ENVIRONMENT LOCK */}
+      {/* NO SCHEDULE YET */}
+      {stage === 'no-schedule' && (
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <h2 className="mb-2 font-serif text-xl">You haven't scheduled today yet</h2>
+          <p className="mb-6 text-sm text-muted">Block out your work periods to start your first session.</p>
+          <Link href="/session/schedule" className="w-full rounded-xl2 bg-accent py-4 text-center font-serif text-lg font-semibold text-ink">
+            Block Out Your Work →
+          </Link>
+          <Link href="/home" className="mt-3 text-sm text-muted">Back to Home</Link>
+        </div>
+      )}
+
+      {/* CATEGORY PICK */}
+      {stage === 'category-pick' && (
+        <div className="flex flex-1 flex-col">
+          <h2 className="mb-5 font-serif text-xl">What do you want to work on?</h2>
+          <div className="space-y-3">
+            {(['deep', 'light'] as const).map((cat) => {
+              const items = schedule.filter((i) => i.category === cat && !i.done);
+              if (!items.length) return null;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => beginCategory(cat, schedule)}
+                  className="w-full rounded-xl2 border border-border bg-panel p-4 text-left"
+                >
+                  <div className="font-serif text-lg">{cat === 'deep' ? 'Deep Work' : 'Light Work'}</div>
+                  <div className="text-xs text-muted">{items.map((i) => i.name).join(', ')}</div>
+                  <div className="text-xs text-muted">{items.reduce((s, i) => s + i.minutes, 0)} min total</div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex-1" />
+          <Link href="/home" className="text-center text-sm text-muted">Back to Home</Link>
+        </div>
+      )}
+
+      {/* BRAIN DUMP */}
+      {stage === 'braindump' && (
+        <div className="flex flex-1 flex-col">
+          <h2 className="mb-2 font-serif text-xl">Loading Dock</h2>
+          <textarea
+            value={brainDump}
+            onChange={(e) => setBrainDump(e.target.value)}
+            placeholder="Dump every distracting thought here..."
+            className="mb-6 h-40 rounded-xl2 border border-border bg-panel p-4 text-sm outline-none focus:border-accent"
+          />
+          <div className="flex-1" />
+          <button onClick={() => setStage('goal')} className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
+            Continue →
+          </button>
+        </div>
+      )}
+
+      {/* GOAL / MICRO-STEPS */}
+      {stage === 'goal' && (
+        <div className="flex flex-1 flex-col">
+          {category === 'deep' ? (
+            <>
+              <h2 className="mb-2 font-serif text-xl">Set Your Goal</h2>
+              <textarea
+                value={goal}
+                onChange={(e) => setGoal(e.target.value)}
+                placeholder="What does success look like for this session?"
+                className="mb-4 h-24 rounded-xl2 border border-border bg-panel p-4 text-sm outline-none focus:border-accent"
+              />
+            </>
+          ) : (
+            <h2 className="mb-2 font-serif text-xl">Break this down into mini steps</h2>
+          )}
+
+          <textarea
+            value={microSteps}
+            onChange={(e) => setMicroSteps(e.target.value)}
+            placeholder="List the small steps you'll take, one at a time..."
+            className="mb-6 h-28 rounded-xl2 border border-border bg-panel p-4 text-sm outline-none focus:border-accent"
+          />
+
+          {category === 'deep' && (
+            <>
+              <label className="mb-2 text-xs uppercase tracking-wide text-muted">How deep are you committing? (1-10)</label>
+              <div className="mb-2 flex gap-1">
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                  <button key={n} onClick={() => setDepth(n)} className={`h-8 flex-1 rounded ${n <= depth ? 'bg-accent' : 'bg-border'}`} />
+                ))}
+              </div>
+              {depth >= 7 && (
+                <div className="mb-4 rounded-lg border border-accent bg-panel2 p-3 text-xs text-accent">
+                  You're putting your reputation on the line for this one. No backing out.
+                </div>
+              )}
+            </>
+          )}
+
+          <div className="flex-1" />
+          <button
+            disabled={category === 'deep' ? !goal.trim() : !microSteps.trim()}
+            onClick={() => setStage('breathing')}
+            className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink disabled:opacity-40"
+          >
+            Continue →
+          </button>
+        </div>
+      )}
+
+      {/* BREATHING */}
+      {stage === 'breathing' && (
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <div className="mb-6 h-32 w-32 animate-pulse rounded-full border-4 border-accent" />
+          <h2 className="mb-2 font-serif text-xl">Breathe</h2>
+          <p className="mb-8 text-sm text-muted">Take three slow breaths. In for 4, out for 6.</p>
+          <button onClick={() => setStage('incantation')} className="w-full rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
+            I'm Ready →
+          </button>
+        </div>
+      )}
+
+      {/* INCANTATION */}
+      {stage === 'incantation' && (
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <h2 className="mb-4 font-serif text-xl">Say it out loud</h2>
+          <p className="mb-2 px-4 font-serif text-lg italic">
+            "I will go as long as I can without taking breaks and getting distracted."
+          </p>
+          <p className="mb-8 text-sm text-muted">
+            Total session: {Math.round((totalSecondsLeft / 60) * 10) / 10} minutes across {queue.length} subject{queue.length > 1 ? 's' : ''}
+          </p>
+          <button onClick={() => setStage('environment')} className="w-full rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
+            Continue →
+          </button>
+        </div>
+      )}
+
+      {/* ENVIRONMENT LOCK (last) */}
       {stage === 'environment' && (
         <div className="flex flex-1 flex-col">
           <h2 className="mb-5 font-serif text-xl">Lock In Your Environment</h2>
@@ -182,199 +431,102 @@ export default function SessionPage() {
               </label>
             ))}
           </div>
-
-          <label className="mb-2 text-xs uppercase tracking-wide text-muted">Ambient sound</label>
-          <div className="mb-6 grid grid-cols-2 gap-2">
-            {AMBIENT.map((a) => (
-              <button
-                key={a}
-                onClick={() => setAmbient(a)}
-                className={`rounded-lg border px-3 py-2 text-sm ${ambient === a ? 'border-accent bg-panel2' : 'border-border bg-panel text-muted'}`}
-              >
-                {a}
-              </button>
-            ))}
-          </div>
-
           <div className="flex-1" />
           <button
             disabled={!checks.every(Boolean)}
-            onClick={() => setStage('braindump')}
+            onClick={startActive}
             className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink disabled:opacity-40"
           >
-            Continue →
-          </button>
-        </div>
-      )}
-
-      {/* BRAIN DUMP */}
-      {stage === 'braindump' && (
-        <div className="flex flex-1 flex-col">
-          <h2 className="mb-2 font-serif text-xl">Loading Dock</h2>
-          <p className="mb-4 text-sm text-muted">Dump every distracting thought here so your mind is free to focus.</p>
-          <textarea
-            value={brainDump}
-            onChange={(e) => setBrainDump(e.target.value)}
-            placeholder="What's on your mind..."
-            className="mb-6 h-40 rounded-xl2 border border-border bg-panel p-4 text-sm outline-none focus:border-accent"
-          />
-          <div className="flex-1" />
-          <button
-            onClick={() => setStage(sessionType === 'deep' ? 'goal' : 'breathing')}
-            className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink"
-          >
-            Continue →
-          </button>
-        </div>
-      )}
-
-      {/* GOAL + DEPTH (deep work only) */}
-      {stage === 'goal' && (
-        <div className="flex flex-1 flex-col">
-          <h2 className="mb-2 font-serif text-xl">Set Your Goal</h2>
-          <p className="mb-4 text-sm text-muted">What does success look like for this session?</p>
-          <textarea
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-            placeholder="e.g. Finish problems 1-10 and review derivatives"
-            className="mb-6 h-28 rounded-xl2 border border-border bg-panel p-4 text-sm outline-none focus:border-accent"
-          />
-
-          <label className="mb-2 text-xs uppercase tracking-wide text-muted">How deep are you committing? (1-10)</label>
-          <div className="mb-2 flex gap-1">
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-              <button
-                key={n}
-                onClick={() => setDepth(n)}
-                className={`h-8 flex-1 rounded ${n <= depth ? 'bg-accent' : 'bg-border'}`}
-              />
-            ))}
-          </div>
-          {depth >= 7 && (
-            <div className="mb-4 rounded-lg border border-accent bg-panel2 p-3 text-xs text-accent">
-              You're putting your reputation on the line for this one. No backing out.
-            </div>
-          )}
-
-          <div className="flex-1" />
-          <button
-            disabled={!goal.trim()}
-            onClick={() => setStage('breathing')}
-            className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink disabled:opacity-40"
-          >
-            Continue →
-          </button>
-        </div>
-      )}
-
-      {/* BREATHING */}
-      {stage === 'breathing' && (
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <div className="mb-6 h-32 w-32 animate-pulse rounded-full border-4 border-accent" />
-          <h2 className="mb-2 font-serif text-xl">Breathe</h2>
-          <p className="mb-8 text-sm text-muted">Take three slow breaths. In for 4, out for 6.</p>
-          <button onClick={() => setStage('runway')} className="w-full rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
-            I'm Ready →
-          </button>
-        </div>
-      )}
-
-      {/* RUNWAY */}
-      {stage === 'runway' && (
-        <div className="flex flex-1 flex-col">
-          <h2 className="mb-2 font-serif text-xl">Runway</h2>
-          <p className="mb-6 text-sm text-muted">
-            Goal: <span className="text-text">{goal || 'Stay focused for the full session'}</span>
-          </p>
-          <div className="mb-6 rounded-xl2 border border-border bg-panel p-4 text-sm text-muted">
-            First physical action: open your materials and write the date at the top of your page. That's it — just start.
-          </div>
-          <div className="flex-1" />
-          <button onClick={startSession} className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
             Start Session ▶
           </button>
         </div>
       )}
 
-      {/* ACTIVE SESSION */}
-      {stage === 'active' && (
+      {/* ACTIVE */}
+      {stage === 'active' && currentSubject && (
         <div className="flex flex-1 flex-col items-center">
-          <div className="mb-2 text-xs uppercase tracking-widest text-muted">{subject} · {sessionType === 'deep' ? 'Deep Work' : 'Light Work'}</div>
-          <div className="relative my-6 flex h-48 w-48 items-center justify-center">
-            <svg viewBox="0 0 200 200" className="h-48 w-48 -rotate-90">
+          <div className="mb-1 text-xs uppercase tracking-widest text-muted">
+            Subject {subjectIdx + 1} of {queue.length} · {category === 'deep' ? 'Deep Work' : 'Light Work'}
+          </div>
+          <div className="mb-4 font-serif text-lg">{currentSubject.name}</div>
+
+          <div className="relative my-4 flex h-44 w-44 items-center justify-center">
+            <svg viewBox="0 0 200 200" className="h-44 w-44 -rotate-90">
               <circle cx="100" cy="100" r={radius} fill="none" stroke="#2a3354" strokeWidth="10" />
               <circle
-                cx="100"
-                cy="100"
-                r={radius}
-                fill="none"
-                stroke="#e8d9b5"
-                strokeWidth="10"
-                strokeDasharray={circumference}
-                strokeDashoffset={circumference * (1 - progress)}
-                strokeLinecap="round"
+                cx="100" cy="100" r={radius} fill="none" stroke="#e8d9b5" strokeWidth="10"
+                strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)} strokeLinecap="round"
               />
             </svg>
-            <div className="absolute font-serif text-3xl">{fmt(secondsLeft)}</div>
+            <div className="absolute font-serif text-2xl">{fmt(subjectSecondsLeft)}</div>
           </div>
 
-          <p className="mb-6 px-6 text-center text-sm text-muted">{goal || 'Stay focused.'}</p>
+          <div className="mb-6 text-sm text-muted">Total remaining: {fmt(totalSecondsLeft)}</div>
 
-          <button onClick={logDistraction} className="mb-3 rounded-lg border border-border px-4 py-2 text-sm text-muted">
-            Log a distraction ({distractions})
-          </button>
-
-          {showStruggle && (
-            <div className="mb-4 w-full rounded-xl2 border border-red bg-panel2 p-4 text-center">
-              <div className="mb-2 text-sm font-semibold text-red">Struggling?</div>
-              <p className="mb-3 text-xs text-muted">3 distractions logged. Take a breath, re-read your goal, and give it 5 more minutes.</p>
-              <button onClick={() => setShowStruggle(false)} className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink">
-                Keep Going
+          {showBreakWarning && (
+            <div className="mb-4 w-full rounded-xl2 border border-red bg-panel2 p-4 text-center text-sm text-red">
+              Taking several breaks is counterproductive to the deep work strategy.
+              <button onClick={() => setShowBreakWarning(false)} className="mt-2 block w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink">
+                Got it
               </button>
             </div>
           )}
 
-          <div className="flex-1" />
-          <button onClick={() => setStage('break-reason')} className="w-full rounded-xl2 border border-border py-3 text-center text-sm text-muted">
-            End session early
-          </button>
+          <div className="flex w-full flex-col gap-2">
+            <button onClick={moveOnToReview} className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
+              I'm Finished ✓
+            </button>
+            <button onClick={requestBreak} className="rounded-xl2 border border-border py-3 text-center text-sm text-muted">
+              Take a break
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* NEED MORE TIME */}
+      {stage === 'need-more-time' && currentSubject && (
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <h2 className="mb-2 font-serif text-xl">Time's up on {currentSubject.name}</h2>
+          <p className="mb-6 text-sm text-muted">Do you need more time, or can you move on?</p>
+          <div className="w-full space-y-2">
+            <button onClick={() => addTime(5)} className="w-full rounded-lg border border-border bg-panel px-4 py-3 text-sm">+5 more minutes</button>
+            <button onClick={() => addTime(10)} className="w-full rounded-lg border border-border bg-panel px-4 py-3 text-sm">+10 more minutes</button>
+            <button onClick={moveOnToReview} className="w-full rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
+              I'm Finished — Move On →
+            </button>
+          </div>
         </div>
       )}
 
       {/* BREAK REASON */}
       {stage === 'break-reason' && (
         <div className="flex flex-1 flex-col">
-          <h2 className="mb-2 font-serif text-xl">Taking a break?</h2>
-          <p className="mb-4 text-sm text-muted">What's prompting it?</p>
-          <div className="mb-6 space-y-2">
-            {BREAK_REASONS.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => setBreakReason(r.id)}
-                className={`w-full rounded-lg border px-4 py-3 text-left text-sm ${breakReason === r.id ? 'border-accent bg-panel2' : 'border-border bg-panel'}`}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
+          <h2 className="mb-4 font-serif text-xl">Taking a break?</h2>
 
-          {breakReason === 'focus_broke' && (
-            <div className="mb-4 rounded-lg border border-accent bg-panel2 p-3 text-xs text-accent">
-              Before you go — could you push through 5 more minutes? Most distractions pass if you wait them out.
+          {showFocusPushback ? (
+            <div className="rounded-xl2 border border-accent bg-panel2 p-4 text-sm">
+              <p className="mb-3 text-accent">The discomfort is your poor attention span. Try 5 more minutes to improve.</p>
+              <div className="flex flex-col gap-2">
+                <button onClick={() => { setShowFocusPushback(false); setStage('active'); }} className="rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-ink">
+                  Try 5 more minutes
+                </button>
+                <button onClick={() => actuallyTakeBreak('focus_broke')} className="rounded-lg border border-border px-4 py-3 text-sm text-muted">
+                  Take the break anyway
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {BREAK_REASONS.map((r) => (
+                <button key={r.id} onClick={() => confirmBreakReason(r.id)} className="w-full rounded-lg border border-border bg-panel px-4 py-3 text-left text-sm">
+                  {r.label}
+                </button>
+              ))}
             </div>
           )}
 
           <div className="flex-1" />
-          <button
-            disabled={!breakReason}
-            onClick={() => {
-              setBreakSeconds(sessionType === 'deep' ? 300 : 120);
-              setStage('break');
-            }}
-            className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink disabled:opacity-40"
-          >
-            Take Break →
-          </button>
+          <button onClick={() => setStage('active')} className="text-center text-sm text-muted">Never mind, keep going</button>
         </div>
       )}
 
@@ -383,55 +535,58 @@ export default function SessionPage() {
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <div className="mb-2 text-xs uppercase tracking-widest text-muted">Break</div>
           <div className="mb-6 font-serif text-5xl">{fmt(breakSeconds)}</div>
-
           <div className="mb-6 grid w-full grid-cols-2 gap-2 text-sm">
             <div className="rounded-lg border border-green p-3 text-green">✓ Stretch</div>
             <div className="rounded-lg border border-green p-3 text-green">✓ Water</div>
             <div className="rounded-lg border border-green p-3 text-green">✓ Walk</div>
             <div className="rounded-lg border border-red p-3 text-red">✗ Phone / social media</div>
           </div>
-
-          <button onClick={() => setStage('review')} className="w-full rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
-            Skip Break →
+          <button onClick={endBreakEarly} className="w-full rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
+            End Break Early →
           </button>
         </div>
       )}
 
-      {/* REVIEW */}
-      {stage === 'review' && (
+      {/* SUBJECT REVIEW */}
+      {stage === 'subject-review' && currentSubject && (
         <div className="flex flex-1 flex-col">
-          <h2 className="mb-2 font-serif text-xl">Session Review</h2>
-          <p className="mb-6 text-sm text-muted">How did it go?</p>
+          <h2 className="mb-2 font-serif text-xl">{currentSubject.name}</h2>
+          <p className="mb-4 text-sm text-muted">Did you finish your work?</p>
+          <div className="mb-6 grid grid-cols-2 gap-3">
+            <button onClick={() => setReviewFinished(true)} className={`rounded-lg border py-3 text-sm ${reviewFinished === true ? 'border-green bg-panel2 text-green' : 'border-border bg-panel text-muted'}`}>Yes</button>
+            <button onClick={() => setReviewFinished(false)} className={`rounded-lg border py-3 text-sm ${reviewFinished === false ? 'border-red bg-panel2 text-red' : 'border-border bg-panel text-muted'}`}>No</button>
+          </div>
 
-          {!finishTag ? (
-            <div className="mb-6 space-y-2">
-              <button onClick={() => finishSession('finished')} className="w-full rounded-lg border border-green bg-panel px-4 py-3 text-left text-sm text-green">
-                ✓ Hit my goal
-              </button>
-              <button onClick={() => finishSession('partial')} className="w-full rounded-lg border border-yellow bg-panel px-4 py-3 text-left text-sm text-yellow">
-                ~ Made progress, didn't finish
-              </button>
-              <button onClick={() => finishSession('failed')} className="w-full rounded-lg border border-red bg-panel px-4 py-3 text-left text-sm text-red">
-                ✗ Got derailed
-              </button>
-            </div>
-          ) : (
-            <div className="mb-6 rounded-xl2 border border-border bg-panel p-5">
-              <div className="mb-3 text-sm">
-                <span className="text-muted">Time focused:</span> {fmt(planned - secondsLeft)}
+          {reviewFinished === false && (
+            <>
+              <p className="mb-3 text-sm text-muted">What got in your way?</p>
+              <div className="mb-6 space-y-2">
+                {BLOCKER_TAGS.map((tag) => (
+                  <button key={tag} onClick={() => setReviewBlocker(tag)} className={`w-full rounded-lg border px-4 py-3 text-left text-sm ${reviewBlocker === tag ? 'border-accent bg-panel2' : 'border-border bg-panel text-muted'}`}>
+                    {tag}
+                  </button>
+                ))}
               </div>
-              <div className="mb-3 text-sm">
-                <span className="text-muted">Distractions logged:</span> {distractions}
-              </div>
-              <div className="text-sm">
-                <span className="text-muted">Result:</span>{' '}
-                {finishTag === 'finished' ? 'Goal hit ✓' : finishTag === 'partial' ? 'Partial progress' : 'Derailed'}
-              </div>
-            </div>
+            </>
           )}
 
           <div className="flex-1" />
-          <Link href="/home" className="rounded-xl2 bg-accent py-4 text-center font-serif text-lg font-semibold text-ink">
+          <button
+            disabled={reviewFinished === null || (reviewFinished === false && !reviewBlocker)}
+            onClick={submitReview}
+            className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink disabled:opacity-40"
+          >
+            {subjectIdx + 1 < queue.length ? 'Next Subject →' : 'Finish Session →'}
+          </button>
+        </div>
+      )}
+
+      {/* SESSION COMPLETE */}
+      {stage === 'session-complete' && (
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <h2 className="mb-2 font-serif text-xl">Session Complete</h2>
+          <p className="mb-8 text-sm text-muted">Nice work. Your analytics have been updated.</p>
+          <Link href="/home" className="w-full rounded-xl2 bg-accent py-4 text-center font-serif text-lg font-semibold text-ink">
             Back to Home
           </Link>
         </div>

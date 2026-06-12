@@ -1,11 +1,38 @@
 import BottomNav from '@/components/BottomNav';
-import { demoInsights } from '@/lib/demo-data';
+import { createClient } from '@/lib/supabase/server';
+import { getUserStats, type UserStats } from '@/lib/stats';
 
 export const dynamic = 'force-dynamic';
 
-export default function InsightsPage() {
-  const i = demoInsights;
-  const max = Math.max(...i.weeklyFocusMinutes);
+const EMPTY: UserStats = {
+  totalFocusMinutes: 0,
+  totalBreaks: 0,
+  deepWorkSessions: 0,
+  deepWorkBreaks: 0,
+  distractionFreeMinutesBeforeFirstBreak: [],
+  sessionsCompleted: 0,
+  sessionsFailed: 0,
+  weeklyFocusMinutes: [0, 0, 0, 0, 0, 0, 0],
+  weeklyLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+};
+
+async function loadStats(): Promise<UserStats> {
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return EMPTY;
+    return await getUserStats(supabase, user.id);
+  } catch {
+    return EMPTY;
+  }
+}
+
+export default async function InsightsPage() {
+  const i = await loadStats();
+  const max = Math.max(1, ...i.weeklyFocusMinutes);
+  const hasAny = i.weeklyFocusMinutes.some((m) => m > 0);
 
   return (
     <main className="px-5 pb-28 pt-8">
@@ -14,17 +41,21 @@ export default function InsightsPage() {
 
       <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
         <div className="mb-4 font-serif text-lg">Focus minutes this week</div>
-        <div className="flex h-32 items-end justify-between gap-2">
-          {i.weeklyFocusMinutes.map((minutes, idx) => (
-            <div key={idx} className="flex flex-1 flex-col items-center gap-2">
-              <div
-                className="w-full rounded-t-md bg-accent"
-                style={{ height: `${(minutes / max) * 100}%` }}
-              />
-              <span className="text-[10px] text-muted">{i.weeklyLabels[idx]}</span>
-            </div>
-          ))}
-        </div>
+        {hasAny ? (
+          <div className="flex h-32 items-end justify-between gap-2">
+            {i.weeklyFocusMinutes.map((minutes, idx) => (
+              <div key={idx} className="flex flex-1 flex-col items-center gap-2">
+                <div
+                  className="w-full rounded-t-md bg-accent"
+                  style={{ height: `${(minutes / max) * 100}%` }}
+                />
+                <span className="text-[10px] text-muted">{i.weeklyLabels[idx]}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted">No sessions logged yet this week.</p>
+        )}
       </section>
 
       <section className="mb-5 grid grid-cols-2 gap-3">
@@ -39,7 +70,7 @@ export default function InsightsPage() {
       </section>
 
       <section className="mb-5 rounded-xl2 border border-border bg-panel p-5 text-sm text-muted">
-        You logged <span className="text-text">{i.breaksLogged}</span> breaks this week. See the Analytics tab for
+        You logged <span className="text-text">{i.totalBreaks}</span> break{i.totalBreaks === 1 ? '' : 's'} this week. See the Analytics tab for
         the math behind how these affect your focus.
       </section>
 

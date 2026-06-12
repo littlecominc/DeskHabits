@@ -1,6 +1,6 @@
 import BottomNav from '@/components/BottomNav';
 import { createClient } from '@/lib/supabase/server';
-import { demoProfile, demoSubjects } from '@/lib/demo-data';
+import { demoProfile } from '@/lib/demo-data';
 import SignOutButton from './SignOutButton';
 import UpgradeButton from './UpgradeButton';
 
@@ -12,7 +12,7 @@ async function getProfileData() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return { profile: demoProfile, subjects: demoSubjects, isDemo: true };
+    if (!user) return { profile: demoProfile, subjects: [], isDemo: true };
 
     const [{ data: profile }, { data: subjects }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
@@ -21,11 +21,11 @@ async function getProfileData() {
 
     return {
       profile: profile ?? demoProfile,
-      subjects: subjects?.length ? subjects : demoSubjects,
+      subjects: subjects ?? [],
       isDemo: false,
     };
   } catch {
-    return { profile: demoProfile, subjects: demoSubjects, isDemo: true };
+    return { profile: demoProfile, subjects: [], isDemo: true };
   }
 }
 
@@ -59,14 +59,18 @@ export default async function ProfilePage() {
         <div className="mb-3 flex items-center justify-between">
           <div className="font-serif text-lg">Your Classes</div>
         </div>
-        <ul className="space-y-2">
-          {subjects.map((s: any) => (
-            <li key={s.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
-              <span>{s.name}</span>
-              {s.next_test_date && <span className="text-xs text-muted">Test {s.next_test_date}</span>}
-            </li>
-          ))}
-        </ul>
+        {subjects.length ? (
+          <ul className="space-y-2">
+            {subjects.map((s: any) => (
+              <li key={s.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
+                <span>{s.name}</span>
+                {s.next_test_date && <span className="text-xs text-muted">Test {s.next_test_date}</span>}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted">No classes added yet.</p>
+        )}
       </section>
 
       <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
