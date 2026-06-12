@@ -5,19 +5,23 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: '#0f1424',        // page background
-        panel: '#161d33',      // card / panel background
-        panel2: '#1d2640',      // raised panel
-        border: '#2a3354',
-        accent: '#e8d9b5',      // cream/gold accent (Classic Indigo "brick" tone)
-        muted: '#8a93b8',
-        text: '#eef1fb',
-        green: '#4ade80',
-        yellow: '#fbbf24',
-        red: '#f87171',
+        ink: '#f9f6f0',         // page background (cream)
+        panel: '#ffffff',       // card / panel background
+        panel2: '#f3ede2',      // raised / secondary panel
+        border: '#e6ded2',
+        accent: '#3a8aab',      // ocean blue (ValuePiece primary)
+        muted: '#6f7585',
+        text: '#20242f',
+        green: '#16a34a',
+        yellow: '#c8862b',
+        red: '#dc2626',
       },
       borderRadius: {
         xl2: '20px',
+      },
+      fontFamily: {
+        serif: ['"Playfair Display"', 'serif'],
+        sans: ['"DM Sans"', 'sans-serif'],
       },
     },
   },
