@@ -6,28 +6,33 @@ export const demoProfile = {
   daily_minutes: 150,
 };
 
-export const demoProgress = {
-  stones: 4,
-  current_streak: 18,
-  longest_streak: 21,
-  avg_break_minutes: 47,
-  phone_pickups_today: 23,
-  discipline_score: 68,
-  attention_score: 74,
-  resilience_score: 61,
+// Raw aggregates — every score on Home/Analytics is computed from these,
+// never stored as an opaque "score".
+export const demoStats = {
+  totalFocusMinutes: 540, // sum of all completed work-session minutes (last 7 days)
+  totalBreaks: 9,
+  deepWorkSessions: 11,
+  deepWorkBreaks: 3, // breaks taken specifically during deep work
+  totalDistractionFreeMinutesBeforeFirstBreak: [42, 18, 35, 50, 12, 28, 60, 22, 31, 45, 19], // per deep-work session
+  phonePickupsDuringSessions: 23,
+  totalSessionMinutesTracked: 540,
 };
 
 export const demoSchedule = [
-  { id: '1', start_time: '9:00 AM', label: 'Focus Session 1', duration_minutes: 50, block_type: 'deep' as const, status: 'pending' as const },
-  { id: '2', start_time: '10:00 AM', label: 'Break', duration_minutes: 10, block_type: 'break' as const, status: 'pending' as const },
-  { id: '3', start_time: '10:10 AM', label: 'Lesson: Stay Present', duration_minutes: 5, block_type: 'lesson' as const, status: 'active' as const },
-  { id: '4', start_time: '11:00 AM', label: 'Focus Session 2', duration_minutes: 50, block_type: 'deep' as const, status: 'pending' as const },
-  { id: '5', start_time: '12:00 PM', label: 'Break', duration_minutes: 10, block_type: 'break' as const, status: 'pending' as const },
-  { id: '6', start_time: '12:10 PM', label: 'Reflect & Log', duration_minutes: 5, block_type: 'reflect' as const, status: 'pending' as const },
+  { id: '1', start_time: '9:00 AM', label: 'AP Calculus', duration_minutes: 60, block_type: 'deep' as const, status: 'pending' as const },
+  { id: '2', start_time: '10:10 AM', label: 'AP US History', duration_minutes: 50, block_type: 'deep' as const, status: 'pending' as const },
+  { id: '3', start_time: '11:15 AM', label: 'Spanish Vocab', duration_minutes: 25, block_type: 'light' as const, status: 'pending' as const },
+];
+
+// Timeline entries for "today's" focus timeline — alternating work/break segments.
+export const demoTimeline = [
+  { type: 'deep' as const, label: 'AP Calculus', start: '9:00 AM', end: '10:00 AM', minutes: 60 },
+  { type: 'break' as const, label: 'Break', start: '10:00 AM', end: '10:08 AM', minutes: 8 },
+  { type: 'deep' as const, label: 'AP US History', start: '10:08 AM', end: '10:58 AM', minutes: 50 },
 ];
 
 export const demoCourse = {
-  title: 'Focus Foundations',
+  title: 'Learn how to work Deeper',
   subtitle: 'Building habits for deep focus in a distracted world.',
   lesson_title: 'Why your attention matters more than you think',
   lesson_minutes: 3,
@@ -36,12 +41,13 @@ export const demoCourse = {
 };
 
 export const demoLessons = [
+  { id: 0, title: 'Welcome: how DeskHabits works', minutes: 4, done: true, intro: true },
   { id: 1, title: 'Why your attention matters more than you think', minutes: 3, done: true },
-  { id: 2, title: 'The myth of multitasking', minutes: 4, done: true },
+  { id: 2, title: 'The myth of multitasking', minutes: 4, done: false },
   { id: 3, title: 'Designing your environment for focus', minutes: 5, done: false },
   { id: 4, title: 'What deep work actually feels like', minutes: 6, done: false },
   { id: 5, title: 'Breaking the phone-checking habit', minutes: 4, done: false },
-  { id: 6, title: 'Recovering from a broken streak', minutes: 3, done: false },
+  { id: 6, title: 'Recovering from a broken session', minutes: 3, done: false },
   { id: 7, title: 'Building a pre-session ritual', minutes: 5, done: false },
   { id: 8, title: 'Studying for high-stakes exams', minutes: 7, done: false },
 ];
@@ -49,11 +55,9 @@ export const demoLessons = [
 export const demoInsights = {
   weeklyFocusMinutes: [90, 120, 60, 150, 100, 40, 130],
   weeklyLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-  hardWorkRatio: 0.62,
-  delayedGratificationScore: 71,
-  totalDistractions: 14,
   sessionsCompleted: 23,
   sessionsFailed: 4,
+  breaksLogged: 9,
 };
 
 export const demoSubjects = [

@@ -1,78 +1,64 @@
-import Tower from '@/components/Tower';
 import BottomNav from '@/components/BottomNav';
-import { createClient } from '@/lib/supabase/server';
-import { demoProgress } from '@/lib/demo-data';
+import { demoStats } from '@/lib/demo-data';
 
 export const dynamic = 'force-dynamic';
 
-async function getProgress() {
-  try {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return demoProgress;
+export default function AnalyticsPage() {
+  const s = demoStats;
 
-    const { data } = await supabase.from('progress').select('*').eq('user_id', user.id).single();
-    return data ?? demoProgress;
-  } catch {
-    return demoProgress;
-  }
-}
+  const attentionRatio = (s.totalFocusMinutes - s.deepWorkBreaks * 10) / s.totalFocusMinutes;
+  const breaksPerDeepSession = s.deepWorkBreaks / s.deepWorkSessions;
 
-const scoreBars = [
-  { key: 'discipline_score', label: 'Discipline', color: 'bg-accent' },
-  { key: 'attention_score', label: 'Attention', color: 'bg-green' },
-  { key: 'resilience_score', label: 'Resilience', color: 'bg-yellow' },
-] as const;
+  const delayedGratList = s.totalDistractionFreeMinutesBeforeFirstBreak;
+  const delayedGratAvg = delayedGratList.reduce((a, b) => a + b, 0) / delayedGratList.length;
 
-export default async function ProgressPage() {
-  const p = (await getProgress()) as any;
-  const stones = p.stones ?? 0;
-  const level = Math.max(1, Math.floor(stones / 2));
-  const stonesToNext = 2 - (stones % 2 === 0 ? 0 : stones % 2);
+  const phonePickupRatio = s.phonePickupsDuringSessions / (s.totalSessionMinutesTracked / 60);
 
   return (
     <main className="px-5 pb-28 pt-8">
-      <h1 className="mb-1 font-serif text-2xl">Your Progress</h1>
-      <p className="mb-6 text-xs uppercase tracking-widest text-muted">Brick by brick.</p>
+      <h1 className="mb-1 font-serif text-2xl">Analytics</h1>
+      <p className="mb-6 text-xs uppercase tracking-widest text-muted">The math behind your focus.</p>
 
-      <section className="mb-5 rounded-xl2 border border-border bg-panel p-5 text-center">
-        <Tower stones={stones} />
-        <div className="mt-3 text-lg font-semibold">Level {level}</div>
-        <div className="text-xs text-muted">
-          {stones % 2 === 0 ? 'Earn 2 more stones to reach the next level' : `Earn ${stonesToNext} more stone to level up`}
-        </div>
-      </section>
-
-      <section className="mb-5 grid grid-cols-2 gap-3">
-        <div className="rounded-xl2 border border-border bg-panel p-4 text-center">
-          <div className="text-3xl font-bold text-accent">{p.current_streak ?? 0}</div>
-          <div className="mt-1 text-[10px] uppercase tracking-wide text-muted">Current Streak (days)</div>
-        </div>
-        <div className="rounded-xl2 border border-border bg-panel p-4 text-center">
-          <div className="text-3xl font-bold text-accent">{p.longest_streak ?? 0}</div>
-          <div className="mt-1 text-[10px] uppercase tracking-wide text-muted">Longest Streak (days)</div>
+      <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
+        <div className="mb-1 font-serif text-lg">Delayed Gratification Score</div>
+        <div className="mb-2 text-3xl font-bold text-accent">{delayedGratAvg.toFixed(1)} <span className="text-sm text-muted">min</span></div>
+        <p className="text-xs text-muted">
+          Average uninterrupted focus time before your first break or distraction, across your last{' '}
+          {delayedGratList.length} deep work sessions.
+        </p>
+        <div className="mt-3 rounded-lg bg-panel2 p-3 font-mono text-[11px] text-muted">
+          ({delayedGratList.join(' + ')}) ÷ {delayedGratList.length} = {delayedGratAvg.toFixed(1)} min
         </div>
       </section>
 
       <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
-        <div className="mb-4 font-serif text-lg">Scores</div>
-        <div className="space-y-4">
-          {scoreBars.map(({ key, label, color }) => {
-            const value = p[key] ?? 0;
-            return (
-              <div key={key}>
-                <div className="mb-1 flex items-center justify-between text-sm">
-                  <span>{label}</span>
-                  <span className="text-muted">{value}/100</span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-border">
-                  <div className={`h-2 rounded-full ${color}`} style={{ width: `${value}%` }} />
-                </div>
-              </div>
-            );
-          })}
+        <div className="mb-1 font-serif text-lg">Attention Ratio</div>
+        <div className="mb-2 text-3xl font-bold text-accent">{Math.round(attentionRatio * 100)}%</div>
+        <p className="text-xs text-muted">Share of your total focus time that wasn't lost to breaks during deep work.</p>
+        <div className="mt-3 rounded-lg bg-panel2 p-3 font-mono text-[11px] text-muted">
+          ({s.totalFocusMinutes} − {s.deepWorkBreaks} × 10) ÷ {s.totalFocusMinutes} = {Math.round(attentionRatio * 100)}%
+        </div>
+      </section>
+
+      <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
+        <div className="mb-1 font-serif text-lg">Breaks per Deep Work Session</div>
+        <div className="mb-2 text-3xl font-bold text-accent">{breaksPerDeepSession.toFixed(2)}</div>
+        <p className="text-xs text-muted">
+          Breaks during deep work hurt your progress most. Light work tolerates more.
+        </p>
+        <div className="mt-3 rounded-lg bg-panel2 p-3 font-mono text-[11px] text-muted">
+          {s.deepWorkBreaks} breaks ÷ {s.deepWorkSessions} sessions = {breaksPerDeepSession.toFixed(2)}
+        </div>
+      </section>
+
+      <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
+        <div className="mb-1 font-serif text-lg">Phone Pickups per Hour of Work</div>
+        <div className="mb-2 text-3xl font-bold text-accent">{phonePickupRatio.toFixed(1)}</div>
+        <p className="text-xs text-muted">
+          Once connected to your phone's screen time, this tracks how often you unlock or switch apps mid-session.
+        </p>
+        <div className="mt-3 rounded-lg bg-panel2 p-3 font-mono text-[11px] text-muted">
+          {s.phonePickupsDuringSessions} pickups ÷ {(s.totalSessionMinutesTracked / 60).toFixed(1)} hrs = {phonePickupRatio.toFixed(1)}
         </div>
       </section>
 

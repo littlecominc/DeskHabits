@@ -1,5 +1,5 @@
 import BottomNav from '@/components/BottomNav';
-import { demoInsights, demoProgress } from '@/lib/demo-data';
+import { demoInsights } from '@/lib/demo-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,14 +29,6 @@ export default function InsightsPage() {
 
       <section className="mb-5 grid grid-cols-2 gap-3">
         <div className="rounded-xl2 border border-border bg-panel p-4">
-          <div className="text-2xl font-bold text-accent">{Math.round(i.hardWorkRatio * 100)}%</div>
-          <div className="mt-1 text-[10px] uppercase tracking-wide text-muted">Hard Work Ratio</div>
-        </div>
-        <div className="rounded-xl2 border border-border bg-panel p-4">
-          <div className="text-2xl font-bold text-accent">{i.delayedGratificationScore}</div>
-          <div className="mt-1 text-[10px] uppercase tracking-wide text-muted">Delayed Gratification</div>
-        </div>
-        <div className="rounded-xl2 border border-border bg-panel p-4">
           <div className="text-2xl font-bold text-green">{i.sessionsCompleted}</div>
           <div className="mt-1 text-[10px] uppercase tracking-wide text-muted">Sessions Completed</div>
         </div>
@@ -46,28 +38,9 @@ export default function InsightsPage() {
         </div>
       </section>
 
-      <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
-        <div className="mb-3 font-serif text-lg">Discipline Breakdown</div>
-        {[
-          { label: 'Discipline', value: demoProgress.discipline_score, color: 'bg-accent' },
-          { label: 'Attention', value: demoProgress.attention_score, color: 'bg-green' },
-          { label: 'Resilience', value: demoProgress.resilience_score, color: 'bg-yellow' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="mb-3 last:mb-0">
-            <div className="mb-1 flex items-center justify-between text-sm">
-              <span>{label}</span>
-              <span className="text-muted">{value}/100</span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-border">
-              <div className={`h-2 rounded-full ${color}`} style={{ width: `${value}%` }} />
-            </div>
-          </div>
-        ))}
-      </section>
-
       <section className="mb-5 rounded-xl2 border border-border bg-panel p-5 text-sm text-muted">
-        You logged <span className="text-text">{i.totalDistractions}</span> distractions this week — down from last
-        week. Each one you catch and return from is a rep for your attention span.
+        You logged <span className="text-text">{i.breaksLogged}</span> breaks this week. See the Analytics tab for
+        the math behind how these affect your focus.
       </section>
 
       <BottomNav />
