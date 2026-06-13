@@ -32,7 +32,7 @@ async function getData() {
     ]);
     const name = profile?.full_name && profile.full_name !== user.email ? profile.full_name : 'there';
 
-    // Soonest upcoming test (today or later) drives the Blitz card.
+    // Soonest upcoming test (today or later) drives the home reminder card.
     const todayStr = new Date().toISOString().slice(0, 10);
     const upcoming = (subjects ?? [])
       .filter((s: any) => s.next_test_date && s.next_test_date >= todayStr)
@@ -90,17 +90,14 @@ export default async function HomePage() {
         <h3 style={{ marginBottom: 12 }}>Today&apos;s Schedule</h3>
         <TodaySchedule />
 
-        <div className="card" style={{ background: 'rgba(248,113,113,.08)', borderColor: 'rgba(248,113,113,.2)' }}>
-          <div style={{ fontSize: 12, color: 'var(--red)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.8px', marginBottom: 4 }}>
-            {nextTest ? `⚠ ${nextTest.name} test ${nextTest.days === 0 ? 'today' : nextTest.days === 1 ? 'tomorrow' : `in ${nextTest.days} days`}` : '⚡ Big test coming up?'}
+        {nextTest && (
+          <div className="card" style={{ background: 'rgba(248,113,113,.08)', borderColor: 'rgba(248,113,113,.2)' }}>
+            <div style={{ fontSize: 12, color: 'var(--red)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.8px', marginBottom: 4 }}>
+              ⚠ {nextTest.name} test {nextTest.days === 0 ? 'today' : nextTest.days === 1 ? 'tomorrow' : `in ${nextTest.days} days`}
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Prioritize this in today&apos;s plan.</div>
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-            {nextTest ? 'Intensity is ramping up. Lock in with Blitz Mode.' : 'Set a test date in your profile, or jump straight into Blitz Mode.'}
-          </div>
-          <Link href="/session?blitz=1" className="btn btn-blitz btn-sm" style={{ display: 'inline-block', textAlign: 'center' }}>
-            ⚡ Switch to Blitz Mode
-          </Link>
-        </div>
+        )}
 
         <Link href="/session" className="btn btn-primary" style={{ display: 'block', textAlign: 'center' }}>
           Begin Today&apos;s Plan →

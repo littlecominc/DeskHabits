@@ -42,7 +42,6 @@ html, body {
   flex-direction: column;
   transition: background .4s, border-color .4s;
 }
-.app-shell.blitz { background: #1a0808; }
 
 .status-bar {
   display: flex; justify-content: space-between; align-items: center;
@@ -94,7 +93,7 @@ p { font-size: 14px; line-height: 1.6; color: var(--muted); }
 .pill-deep { background: rgba(108,99,255,.2); color: #a5a0ff; }
 .pill-light { background: rgba(251,191,36,.2); color: var(--yellow); }
 .pill-break { background: rgba(74,222,128,.2); color: var(--green); }
-.pill-blitz { background: rgba(248,113,113,.25); color: var(--red); }
+.pill-urgent { background: rgba(248,113,113,.25); color: var(--red); }
 
 .btn {
   width: 100%; padding: 16px; border-radius: var(--radius);
@@ -105,7 +104,6 @@ p { font-size: 14px; line-height: 1.6; color: var(--muted); }
 .btn:disabled { opacity: .35; pointer-events: none; }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-danger { background: var(--red); color: #fff; }
-.btn-blitz { background: linear-gradient(135deg, #ff3b3b, #b30000); color: #fff; }
 .btn-ghost { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
 .btn-sm { padding: 10px 16px; font-size: 13px; border-radius: var(--radius-sm); width: auto; }
 
@@ -191,7 +189,6 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 6px; }
 .session-header { text-align: center; padding: 20px 20px 10px; }
 .session-header .subject { font-size: 12px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
 .session-header .task-title { font-size: 19px; font-weight: 800; }
-.blitz .session-header .subject { color: var(--red); }
 
 .timer-ring-wrap { display: flex; justify-content: center; margin: 10px 0 14px; }
 .timer-ring { position: relative; width: 160px; height: 160px; }
@@ -199,16 +196,6 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 6px; }
 .timer-ring .timer-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .timer-digits { font-size: 36px; font-weight: 800; letter-spacing: -2px; }
 .timer-sub { font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 2px; }
-
-.eyes-row { display:flex; justify-content:center; gap:24px; padding: 14px 0 4px; }
-.eye {
-  width: 50px; height: 30px; background:#fff; border-radius: 50%;
-  display:flex; align-items:center; justify-content:center; overflow:hidden;
-  animation: squint 2.4s ease-in-out infinite;
-}
-.eye::after { content:''; width:16px; height:16px; background:#1a0808; border-radius:50%; }
-@keyframes squint { 0%, 100% { height: 30px; } 50% { height: 8px; } }
-.blitz-banner { text-align:center; font-size: 12px; font-weight: 800; letter-spacing: 1.5px; color: var(--red); text-transform:uppercase; padding: 6px; }
 
 /* Tower / discipline */
 .tower-wrap { display:flex; flex-direction:column; align-items:center; padding: 20px 0 8px; }

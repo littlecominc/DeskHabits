@@ -116,7 +116,7 @@ export default function ClassManager({ initial }: { initial: Subject[] }) {
       {/* UPCOMING TESTS — separate feature */}
       <div className="card">
         <h3 style={{ marginBottom: 6 }}>Upcoming Tests</h3>
-        <p style={{ marginBottom: 12 }}>Set a test date for any class. The soonest one drives Blitz Mode on your home screen.</p>
+        <p style={{ marginBottom: 12 }}>Set a test date for any class. The soonest one is highlighted on your home screen.</p>
         {subjects.length === 0 ? (
           <p>Add a class first.</p>
         ) : (
@@ -125,7 +125,7 @@ export default function ClassManager({ initial }: { initial: Subject[] }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>{s.name}</span>
                 {s.next_test_date && (
-                  <span className={`pill ${daysUntil(s.next_test_date) <= 7 ? 'pill-blitz' : 'pill-deep'}`}>
+                  <span className={`pill ${daysUntil(s.next_test_date) <= 7 ? 'pill-urgent' : 'pill-deep'}`}>
                     {relativeLabel(s.next_test_date)}
                   </span>
                 )}

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { loadSchedule, saveSchedule, type ScheduleItem } from '@/lib/schedule';
 import { hasCompletedIntro } from '@/lib/course';
@@ -22,7 +21,6 @@ type Stage =
   | 'r-incant'
   | 'runway'
   | 'l-start'
-  | 'blitzconfirm'
   | 'session'
   | 'struggle'
   | 'breakreason'
@@ -33,7 +31,6 @@ type Stage =
 const FAIL_TAGS = ['Attention collapsed', 'Material too hard', 'External distraction', 'Ran out of time'];
 
 export default function SessionPage() {
-  const router = useRouter();
   const supabase = createClient();
 
   const [stage, setStage] = useState<Stage>('loading');
@@ -41,7 +38,6 @@ export default function SessionPage() {
   const [queue, setQueue] = useState<ScheduleItem[]>([]);
   const [index, setIndex] = useState(0);
   const [category, setCategory] = useState<'deep' | 'light'>('deep');
-  const [blitz, setBlitz] = useState(false);
 
   // ritual inputs
   const [lock1, setLock1] = useState(false);
@@ -70,7 +66,6 @@ export default function SessionPage() {
   const [finishedMicro, setFinishedMicro] = useState<boolean | null>(null);
   const [failTags, setFailTags] = useState<string[]>([]);
 
-  const [toast, setToast] = useState('');
 
   const current = queue[index];
 
@@ -80,32 +75,16 @@ export default function SessionPage() {
       setStage('needs-intro');
       return;
     }
-    const isBlitz = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('blitz') === '1';
     const s = loadSchedule();
     if (s?.items?.length) {
       setSchedule(s.items);
       const q = s.items.filter((i) => !i.done);
       setQueue(q);
-      if (isBlitz) {
-        setStage('blitzconfirm');
-      } else if (q.length) {
-        setStage('categorize');
-      } else {
-        setStage('complete');
-      }
+      setStage(q.length ? 'categorize' : 'complete');
     } else {
-      if (isBlitz) setStage('blitzconfirm');
-      else setStage('no-schedule');
+      setStage('no-schedule');
     }
   }, []);
-
-  // ---------- blitz theme toggle ----------
-  useEffect(() => {
-    const shell = document.getElementById('app-shell');
-    if (!shell) return;
-    shell.classList.toggle('blitz', blitz);
-    return () => shell.classList.remove('blitz');
-  }, [blitz]);
 
   // ---------- session timer ----------
   useEffect(() => {
@@ -139,11 +118,6 @@ export default function SessionPage() {
     return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
   }
 
-  function flashToast(msg: string) {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3500);
-  }
-
   // ---------- flow actions ----------
   function categorize(type: 'deep' | 'light') {
     setCategory(type);
@@ -168,20 +142,6 @@ export default function SessionPage() {
     setStage('session');
   }
 
-  function enterBlitz() {
-    setBlitz(true);
-    setCategory('deep');
-    const secs = 25 * 60;
-    setTotal(secs);
-    setSecondsLeft(secs);
-    setDistractions([]);
-    setShowPulse(false);
-    setShowDial(false);
-    setGoal('Drill review packet');
-    setStage('session');
-    flashToast('⚡ Blitz Mode activated. Sessions are shorter, breaks are tighter, and Fata is watching.');
-  }
-
   function logDistraction() {
     const stamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const next = [...distractions, stamp];
@@ -204,7 +164,7 @@ export default function SessionPage() {
 
   function startBreak(reason: string, pushed: boolean) {
     setBreaksTaken((b) => [...b, { reason, pushed, at: total - secondsLeft }]);
-    setBreakSeconds(blitz ? 120 : reason === 'think' ? 600 : 300);
+    setBreakSeconds(reason === 'think' ? 600 : 300);
     setPushback(false);
     setStage('break');
   }
@@ -225,7 +185,7 @@ export default function SessionPage() {
           .insert({
             user_id: user.id,
             subject_id: current?.id ?? null,
-            session_type: blitz ? 'blitz' : category,
+            session_type: category,
             goal: goal || current?.name || null,
             micro_steps: microSteps.length ? microSteps : null,
             depth_rating: category === 'deep' ? depth : null,
@@ -272,11 +232,6 @@ export default function SessionPage() {
     setRunwaySuccess('');
     setRunwayAction('');
 
-    if (blitz) {
-      setBlitz(false);
-      setStage('complete');
-      return;
-    }
     if (index + 1 < queue.length) {
       setIndex((i) => i + 1);
       setStage('categorize');
@@ -485,32 +440,18 @@ export default function SessionPage() {
         <RitualSimple icon="📵" title="Put Your Phone Aside and Begin" sub="Light work session — assignments, memorization, notes." btn="Begin Session →" onNext={() => beginSession('light')} full />
       )}
 
-      {/* BLITZ CONFIRM */}
-      {stage === 'blitzconfirm' && (
-        <div className="content center-col" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>⚡</div>
-          <h1 style={{ color: 'var(--red)', marginBottom: 10 }}>Enter Blitz Mode?</h1>
-          <p style={{ marginBottom: 20 }}>Blitz mode shortens breaks, increases session intensity, and turns the whole app red. You&apos;ll be watched. There is no soft opt-out.</p>
-          <button className="btn btn-blitz" onClick={enterBlitz}>⚡ Activate Blitz Mode</button>
-          <div style={{ height: 10 }} />
-          <button className="btn btn-ghost" onClick={() => router.push('/home')}>Never mind</button>
-        </div>
-      )}
-
       {/* SESSION */}
       {stage === 'session' && (
         <>
-          {blitz && <div className="blitz-banner">⚡ BLITZ MODE — FATA IS WATCHING</div>}
-          {blitz && <div className="eyes-row"><div className="eye" /><div className="eye" /></div>}
           <div className="session-header">
-            <div className="subject">{(current?.name ?? 'Session').toUpperCase()} · {blitz ? 'BLITZ MODE' : category === 'deep' ? 'DEEP WORK' : 'LIGHT WORK'}</div>
+            <div className="subject">{(current?.name ?? 'Session').toUpperCase()} · {category === 'deep' ? 'DEEP WORK' : 'LIGHT WORK'}</div>
             <div className="task-title">{goal || current?.name || 'Focus'}</div>
           </div>
           <div className="timer-ring-wrap">
             <div className="timer-ring">
               <svg width="160" height="160" viewBox="0 0 160 160">
                 <circle cx="80" cy="80" r="70" fill="none" stroke="#2e2e40" strokeWidth="9" />
-                <circle cx="80" cy="80" r="70" fill="none" stroke={blitz ? '#f87171' : '#6c63ff'} strokeWidth="9" strokeDasharray={C} strokeDashoffset={C * (1 - pct)} strokeLinecap="round" />
+                <circle cx="80" cy="80" r="70" fill="none" stroke="#6c63ff" strokeWidth="9" strokeDasharray={C} strokeDashoffset={C * (1 - pct)} strokeLinecap="round" />
               </svg>
               <div className="timer-label">
                 <div className="timer-digits">{fmt(secondsLeft)}</div>
@@ -623,7 +564,7 @@ export default function SessionPage() {
       {stage === 'review' && (
         <div className="content">
           <h3 style={{ marginBottom: 8 }}>Session Complete</h3>
-          <h2 style={{ marginBottom: 18 }}>{current?.name ?? 'Session'} — {blitz ? 'Blitz' : category === 'deep' ? 'Deep Work' : 'Light Work'}</h2>
+          <h2 style={{ marginBottom: 18 }}>{current?.name ?? 'Session'} — {category === 'deep' ? 'Deep Work' : 'Light Work'}</h2>
           <div className="card">
             <h3 style={{ marginBottom: 10 }}>Did you finish your work?</h3>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -648,7 +589,7 @@ export default function SessionPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}><span style={{ fontSize: 13, color: 'var(--muted)' }}>A stone has been added 🪨</span><b style={{ color: 'var(--accent)' }}>+1</b></div>
           </div>
           <button className="btn btn-primary" disabled={finishedMicro === null} onClick={finishReview}>
-            {index + 1 < queue.length && !blitz ? 'Next Subject →' : 'Done → Back to Plan'}
+            {index + 1 < queue.length ? 'Next Subject →' : 'Done → Back to Plan'}
           </button>
           <div style={{ height: 16 }} />
         </div>
@@ -663,8 +604,6 @@ export default function SessionPage() {
           <Link href="/home" className="btn btn-primary" style={{ display: 'block', textAlign: 'center' }}>Back to Plan</Link>
         </div>
       )}
-
-      {toast && <div className="toast show">{toast}</div>}
     </div>
   );
 }
