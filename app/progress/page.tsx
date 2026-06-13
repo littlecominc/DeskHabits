@@ -29,82 +29,66 @@ async function loadStats(): Promise<UserStats> {
   }
 }
 
+const TOWER_ROWS = 7;
+
 export default async function AnalyticsPage() {
   const s = await loadStats();
   const totalSessions = s.sessionsCompleted + s.sessionsFailed;
 
   const delayedGratList = s.distractionFreeMinutesBeforeFirstBreak;
   const delayedGratAvg = delayedGratList.length
-    ? delayedGratList.reduce((a, b) => a + b, 0) / delayedGratList.length
+    ? Math.round(delayedGratList.reduce((a, b) => a + b, 0) / delayedGratList.length)
     : 0;
-
-  const attentionRatio = s.totalFocusMinutes > 0 ? (s.totalFocusMinutes - s.deepWorkBreaks * 10) / s.totalFocusMinutes : 0;
-  const breaksPerDeepSession = s.deepWorkSessions > 0 ? s.deepWorkBreaks / s.deepWorkSessions : 0;
-  const completionRate = totalSessions > 0 ? s.sessionsCompleted / totalSessions : 0;
+  const completionRate = totalSessions > 0 ? Math.round((s.sessionsCompleted / totalSessions) * 100) : 0;
+  const attentionRatio = s.totalFocusMinutes > 0 ? Math.round(((s.totalFocusMinutes - s.deepWorkBreaks * 10) / s.totalFocusMinutes) * 100) : 0;
+  const focusHours = (s.totalFocusMinutes / 60).toFixed(1);
+  const stonesLaid = Math.max(0, Math.min(TOWER_ROWS, s.sessionsCompleted));
 
   return (
-    <main className="px-5 pb-28 pt-8">
-      <h1 className="mb-1 font-serif text-2xl">Analytics</h1>
-      <p className="mb-6 text-xs uppercase tracking-widest text-muted">The math behind your focus.</p>
+    <div className="screen">
+      <div className="content fade-in">
+        <h2 style={{ marginBottom: 18 }}>Your Progress</h2>
 
-      {totalSessions === 0 ? (
-        <section className="mb-5 rounded-xl2 border border-border bg-panel p-5 text-sm text-muted">
-          Complete your first work session to start seeing your numbers here.
-        </section>
-      ) : (
-        <>
-          <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
-            <div className="mb-1 font-serif text-lg">Delayed Gratification Score</div>
-            <div className="mb-2 text-3xl font-bold text-accent">{delayedGratAvg.toFixed(1)} <span className="text-sm text-muted">min</span></div>
-            <p className="text-xs text-muted">
-              Average uninterrupted focus time before your first break, across your last{' '}
-              {delayedGratList.length} deep work session{delayedGratList.length === 1 ? '' : 's'}.
-            </p>
-            {delayedGratList.length > 0 && (
-              <div className="mt-3 rounded-lg bg-panel2 p-3 font-mono text-[11px] text-muted">
-                ({delayedGratList.join(' + ')}) ÷ {delayedGratList.length} = {delayedGratAvg.toFixed(1)} min
-              </div>
-            )}
-          </section>
-
-          <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
-            <div className="mb-1 font-serif text-lg">Attention Ratio</div>
-            <div className="mb-2 text-3xl font-bold text-accent">{Math.round(attentionRatio * 100)}%</div>
-            <p className="text-xs text-muted">Share of your total focus time that wasn't lost to breaks during deep work.</p>
-            {s.totalFocusMinutes > 0 && (
-              <div className="mt-3 rounded-lg bg-panel2 p-3 font-mono text-[11px] text-muted">
-                ({s.totalFocusMinutes} − {s.deepWorkBreaks} × 10) ÷ {s.totalFocusMinutes} = {Math.round(attentionRatio * 100)}%
-              </div>
-            )}
-          </section>
-
-          <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
-            <div className="mb-1 font-serif text-lg">Breaks per Deep Work Session</div>
-            <div className="mb-2 text-3xl font-bold text-accent">{breaksPerDeepSession.toFixed(2)}</div>
-            <p className="text-xs text-muted">
-              Breaks during deep work hurt your progress most. Light work tolerates more.
-            </p>
-            {s.deepWorkSessions > 0 && (
-              <div className="mt-3 rounded-lg bg-panel2 p-3 font-mono text-[11px] text-muted">
-                {s.deepWorkBreaks} breaks ÷ {s.deepWorkSessions} sessions = {breaksPerDeepSession.toFixed(2)}
-              </div>
-            )}
-          </section>
-
-          <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
-            <div className="mb-1 font-serif text-lg">Goal Completion Rate</div>
-            <div className="mb-2 text-3xl font-bold text-accent">{Math.round(completionRate * 100)}%</div>
-            <p className="text-xs text-muted">
-              Of the sessions you've run, how often you finished what you set out to do.
-            </p>
-            <div className="mt-3 rounded-lg bg-panel2 p-3 font-mono text-[11px] text-muted">
-              {s.sessionsCompleted} ÷ {totalSessions} = {Math.round(completionRate * 100)}%
+        {totalSessions === 0 ? (
+          <div className="card"><p>Complete your first work session to start seeing your numbers here.</p></div>
+        ) : (
+          <>
+            <div className="stats-grid">
+              <div className="stat-card"><div className="stat-val">{completionRate}%</div><div className="stat-label">Goal completion</div></div>
+              <div className="stat-card"><div className="stat-val">{attentionRatio}%</div><div className="stat-label">Attention ratio</div></div>
+              <div className="stat-card"><div className="stat-val">{focusHours}</div><div className="stat-label">Focus hours (7d)</div></div>
+              <div className="stat-card"><div className="stat-val">{s.sessionsCompleted}</div><div className="stat-label">Sessions completed</div></div>
             </div>
-          </section>
-        </>
-      )}
 
+            <div className="card">
+              <h3 style={{ marginBottom: 10 }}>Delayed Gratification Score</h3>
+              <p style={{ marginBottom: 6 }}>Avg. time in deep work before your first break:</p>
+              <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent)' }}>{delayedGratAvg} minutes</div>
+              {delayedGratList.length > 0 && (
+                <div style={{ marginTop: 10, padding: 12, background: 'var(--surface)', borderRadius: 8, fontFamily: 'monospace', fontSize: 11, color: 'var(--muted)' }}>
+                  ({delayedGratList.join(' + ')}) ÷ {delayedGratList.length} = {delayedGratAvg} min
+                </div>
+              )}
+            </div>
+
+            <div className="card">
+              <h3 style={{ marginBottom: 10 }}>Attention Ratio breakdown</h3>
+              <p>Share of focus time not lost to deep-work breaks: ({s.totalFocusMinutes} min − {s.deepWorkBreaks} breaks × 10) ÷ {s.totalFocusMinutes} min.</p>
+            </div>
+          </>
+        )}
+
+        <div className="tower-wrap card">
+          <h3 style={{ marginBottom: 10 }}>Discipline Tower — Full View</h3>
+          <div className="tower">
+            {Array.from({ length: TOWER_ROWS }).map((_, i) => (
+              <div key={i} className={`stone ${i >= stonesLaid ? 'ghost' : ''}`} />
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>{stonesLaid} stone{stonesLaid === 1 ? '' : 's'} laid.</div>
+        </div>
+      </div>
       <BottomNav />
-    </main>
+    </div>
   );
 }

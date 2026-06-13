@@ -16,38 +16,33 @@ export default function TodaySchedule() {
 
   if (!items.length) {
     return (
-      <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
-        <div className="mb-3 font-serif text-lg">Today's Plan</div>
-        <div className="text-sm text-muted">You haven't scheduled today yet.</div>
-      </section>
+      <div className="card" style={{ padding: '16px' }}>
+        <p style={{ marginBottom: 10 }}>You haven&apos;t scheduled today yet.</p>
+        <Link href="/session/schedule" className="btn btn-ghost btn-sm" style={{ display: 'inline-block', textAlign: 'center' }}>
+          Build your plan →
+        </Link>
+      </div>
     );
   }
 
-  const totalMinutes = items.reduce((s, i) => s + i.minutes, 0);
-  const doneMinutes = items.filter((i) => i.done).reduce((s, i) => s + i.minutes, 0);
-
   return (
-    <section className="mb-5 rounded-xl2 border border-border bg-panel p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="font-serif text-lg">Today's Plan</div>
-        <span className="text-xs text-muted">{doneMinutes} / {totalMinutes} min</span>
-      </div>
-      <ul className="space-y-2">
-        {items.map((item) => (
-          <li key={item.id} className="flex items-center justify-between rounded-lg border border-border bg-panel2 px-4 py-3 text-sm">
-            <div className="flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${item.category === 'deep' ? 'bg-accent' : 'bg-yellow'}`} />
-              <span className={item.done ? 'text-muted line-through' : ''}>{item.name}</span>
+    <div className="card" style={{ padding: '8px 14px' }}>
+      {items.map((item) => {
+        const dotCls = item.category === 'deep' ? 'dot' : 'dot dot-yellow';
+        const pillCls = item.category === 'deep' ? 'pill pill-deep' : 'pill pill-light';
+        const label = item.category === 'deep' ? 'Deep Work' : 'Light Work';
+        return (
+          <div key={item.id} className="schedule-item">
+            <div className={dotCls} />
+            <div className="task-col">
+              <div className="task-name" style={item.done ? { textDecoration: 'line-through', opacity: 0.5 } : undefined}>
+                {item.name}
+              </div>
+              <span className={pillCls}>{label} · {item.minutes} min{item.done ? ' · done' : ''}</span>
             </div>
-            <span className="text-muted">{item.minutes} min{item.done ? ' · done' : ''}</span>
-          </li>
-        ))}
-      </ul>
-      {items.every((i) => i.done) && (
-        <Link href="/session/schedule" className="mt-3 block text-center text-xs text-accent">
-          Plan tomorrow's session →
-        </Link>
-      )}
-    </section>
+          </div>
+        );
+      })}
+    </div>
   );
 }

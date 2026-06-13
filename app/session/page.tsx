@@ -11,27 +11,26 @@ type Stage =
   | 'loading'
   | 'needs-intro'
   | 'no-schedule'
-  | 'category-pick'
-  | 'braindump'
-  | 'goal'
-  | 'breathing'
-  | 'incantation'
-  | 'environment'
-  | 'active'
-  | 'need-more-time'
-  | 'break-reason'
+  | 'categorize'
+  | 'r-lock'
+  | 'r-clear'
+  | 'r-water'
+  | 'r-dump'
+  | 'r-goal'
+  | 'r-depth'
+  | 'r-breath'
+  | 'r-incant'
+  | 'runway'
+  | 'l-start'
+  | 'blitzconfirm'
+  | 'session'
+  | 'struggle'
+  | 'breakreason'
   | 'break'
-  | 'subject-review'
-  | 'session-complete';
+  | 'review'
+  | 'complete';
 
-const ENV_ITEMS = ['Desk cleared of clutter', 'Phone in another room or face-down', 'Close all unrelated tabs', 'Water within reach'];
-const BREAK_REASONS = [
-  { id: 'natural', label: "I'm done with this subject for now" },
-  { id: 'focus_broke', label: 'My focus broke' },
-  { id: 'need_to_think', label: 'I need to step away to think something through' },
-  { id: 'water_movement', label: 'I need water / to move' },
-];
-const BLOCKER_TAGS = ['Got distracted by phone', 'Got distracted by something else', 'Lost motivation', 'Ran out of time'];
+const FAIL_TAGS = ['Attention collapsed', 'Material too hard', 'External distraction', 'Ran out of time'];
 
 export default function SessionPage() {
   const router = useRouter();
@@ -39,558 +38,676 @@ export default function SessionPage() {
 
   const [stage, setStage] = useState<Stage>('loading');
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
-  const [category, setCategory] = useState<'deep' | 'light' | null>(null);
   const [queue, setQueue] = useState<ScheduleItem[]>([]);
-  const [subjectIdx, setSubjectIdx] = useState(0);
+  const [index, setIndex] = useState(0);
+  const [category, setCategory] = useState<'deep' | 'light'>('deep');
+  const [blitz, setBlitz] = useState(false);
 
+  // ritual inputs
+  const [lock1, setLock1] = useState(false);
+  const [lock2, setLock2] = useState(false);
+  const [ambient, setAmbient] = useState('Silence');
   const [brainDump, setBrainDump] = useState('');
-  const [microSteps, setMicroSteps] = useState('');
   const [goal, setGoal] = useState('');
-  const [depth, setDepth] = useState(5);
-  const [checks, setChecks] = useState<boolean[]>(ENV_ITEMS.map(() => false));
+  const [steps, setSteps] = useState(['', '', '', '']);
+  const [depth, setDepth] = useState(0);
+  const [runwaySuccess, setRunwaySuccess] = useState('');
+  const [runwayAction, setRunwayAction] = useState('');
 
-  const [totalSecondsLeft, setTotalSecondsLeft] = useState(0);
-  const [subjectSecondsLeft, setSubjectSecondsLeft] = useState(0);
-
-  const [breakReason, setBreakReason] = useState<string | null>(null);
+  // session state
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [distractions, setDistractions] = useState<string[]>([]);
+  const [showPulse, setShowPulse] = useState(false);
+  const [pulseStep, setPulseStep] = useState('Step 1');
+  const [showDial, setShowDial] = useState(false);
+  const [dialRating, setDialRating] = useState(0);
+  const [pushback, setPushback] = useState(false);
   const [breakSeconds, setBreakSeconds] = useState(0);
-  const [breakTimestamps, setBreakTimestamps] = useState<number[]>([]);
-  const [showBreakWarning, setShowBreakWarning] = useState(false);
-  const [showFocusPushback, setShowFocusPushback] = useState(false);
+  const [breaksTaken, setBreaksTaken] = useState<{ reason: string; pushed: boolean; at: number }[]>([]);
 
-  const [breaksThisSubject, setBreaksThisSubject] = useState(0);
-  const [subjectBreaks, setSubjectBreaks] = useState<{ reason: string; pushed_back: boolean; taken_at_seconds: number; planned_seconds: number }[]>([]);
-  const [reviewFinished, setReviewFinished] = useState<boolean | null>(null);
-  const [reviewBlocker, setReviewBlocker] = useState<string | null>(null);
+  // review
+  const [finishedMicro, setFinishedMicro] = useState<boolean | null>(null);
+  const [failTags, setFailTags] = useState<string[]>([]);
 
-  // ---- load schedule on mount ----
+  const [toast, setToast] = useState('');
+
+  const current = queue[index];
+
+  // ---------- mount ----------
   useEffect(() => {
     if (!hasCompletedIntro()) {
       setStage('needs-intro');
       return;
     }
+    const isBlitz = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('blitz') === '1';
     const s = loadSchedule();
-    if (!s || !s.items.length) {
-      setStage('no-schedule');
-      return;
-    }
-    setSchedule(s.items);
-    const deepLeft = s.items.some((i) => i.category === 'deep' && !i.done);
-    const lightLeft = s.items.some((i) => i.category === 'light' && !i.done);
-    if (deepLeft && lightLeft) {
-      setStage('category-pick');
-    } else if (deepLeft) {
-      beginCategory('deep', s.items);
-    } else if (lightLeft) {
-      beginCategory('light', s.items);
+    if (s?.items?.length) {
+      setSchedule(s.items);
+      const q = s.items.filter((i) => !i.done);
+      setQueue(q);
+      if (isBlitz) {
+        setStage('blitzconfirm');
+      } else if (q.length) {
+        setStage('categorize');
+      } else {
+        setStage('complete');
+      }
     } else {
-      setStage('session-complete');
+      if (isBlitz) setStage('blitzconfirm');
+      else setStage('no-schedule');
     }
   }, []);
 
-  function beginCategory(cat: 'deep' | 'light', items: ScheduleItem[]) {
-    const q = items.filter((i) => i.category === cat && !i.done);
-    setCategory(cat);
-    setQueue(q);
-    setSubjectIdx(0);
-    setTotalSecondsLeft(q.reduce((s, i) => s + i.minutes * 60, 0));
-    setSubjectSecondsLeft(q[0].minutes * 60);
-    setStage('braindump');
-  }
-
-  // ---- active timers ----
+  // ---------- blitz theme toggle ----------
   useEffect(() => {
-    if (stage !== 'active') return;
-    if (subjectSecondsLeft <= 0) {
-      setStage('need-more-time');
+    const shell = document.getElementById('app-shell');
+    if (!shell) return;
+    shell.classList.toggle('blitz', blitz);
+    return () => shell.classList.remove('blitz');
+  }, [blitz]);
+
+  // ---------- session timer ----------
+  useEffect(() => {
+    if (stage !== 'session') return;
+    if (secondsLeft <= 0) {
+      setStage('review');
       return;
     }
     const t = setTimeout(() => {
-      setSubjectSecondsLeft((s) => s - 1);
-      setTotalSecondsLeft((s) => Math.max(0, s - 1));
+      const next = secondsLeft - 1;
+      setSecondsLeft(next);
+      const elapsed = total - next;
+      if (!showPulse && total > 1800 && elapsed >= total / 2) setShowPulse(true);
+      if (!showDial && elapsed >= 15) setShowDial(true);
     }, 1000);
     return () => clearTimeout(t);
-  }, [stage, subjectSecondsLeft]);
+  }, [stage, secondsLeft, total, showPulse, showDial]);
 
-  // ---- break countdown ----
+  // ---------- break timer ----------
   useEffect(() => {
     if (stage !== 'break') return;
     if (breakSeconds <= 0) {
-      setStage('active');
+      setStage('session');
       return;
     }
     const t = setTimeout(() => setBreakSeconds((s) => s - 1), 1000);
     return () => clearTimeout(t);
   }, [stage, breakSeconds]);
 
-  function fmt(s: number) {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${sec.toString().padStart(2, '0')}`;
+  function fmt(sec: number) {
+    return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
   }
 
-  const currentSubject = queue[subjectIdx];
-  const radius = 80;
-  const circumference = 2 * Math.PI * radius;
-  const subjectTotal = currentSubject ? currentSubject.minutes * 60 : 1;
-  const progress = currentSubject ? 1 - subjectSecondsLeft / subjectTotal : 0;
-
-  function startActive() {
-    setStage('active');
+  function flashToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3500);
   }
 
-  function requestBreak() {
-    setStage('break-reason');
-    setBreakReason(null);
+  // ---------- flow actions ----------
+  function categorize(type: 'deep' | 'light') {
+    setCategory(type);
+    setPushback(false);
+    setStage('r-lock');
   }
 
-  function confirmBreakReason(reasonId: string) {
-    if (reasonId === 'focus_broke') {
-      setShowFocusPushback(true);
-      setBreakReason(reasonId);
-      return;
+  function afterDump() {
+    setStage(category === 'deep' ? 'r-goal' : 'l-start');
+  }
+
+  function beginSession(type: 'deep' | 'light') {
+    const minutes = current?.minutes ?? (type === 'deep' ? 50 : 25);
+    const secs = minutes * 60;
+    setTotal(secs);
+    setSecondsLeft(secs);
+    setDistractions([]);
+    setShowPulse(false);
+    setShowDial(false);
+    setDialRating(0);
+    setBreaksTaken([]);
+    setStage('session');
+  }
+
+  function enterBlitz() {
+    setBlitz(true);
+    setCategory('deep');
+    const secs = 25 * 60;
+    setTotal(secs);
+    setSecondsLeft(secs);
+    setDistractions([]);
+    setShowPulse(false);
+    setShowDial(false);
+    setGoal('Drill review packet');
+    setStage('session');
+    flashToast('⚡ Blitz Mode activated. Sessions are shorter, breaks are tighter, and Fata is watching.');
+  }
+
+  function logDistraction() {
+    const stamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const next = [...distractions, stamp];
+    setDistractions(next);
+    if (next.length >= 3) setStage('struggle');
+  }
+
+  function closeStruggle() {
+    setDistractions([]);
+    setStage('session');
+  }
+
+  function chooseBreakReason(reason: string) {
+    if (reason === 'natural' || reason === 'water') {
+      startBreak(reason, false);
+    } else {
+      setPushback(true);
     }
-    actuallyTakeBreak(reasonId);
   }
 
-  function actuallyTakeBreak(reasonId: string) {
-    setShowFocusPushback(false);
-    const now = Date.now();
-    const recent = breakTimestamps.filter((t) => now - t < 60 * 60 * 1000);
-    const updated = [...recent, now];
-    setBreakTimestamps(updated);
-
-    if (category === 'deep' && recent.length >= 1) {
-      setShowBreakWarning(true);
-    }
-
-    setBreaksThisSubject((b) => b + 1);
-    const seconds = reasonId === 'need_to_think' ? 600 : category === 'deep' ? 300 : 120;
-    setBreakSeconds(seconds);
-    setSubjectBreaks((prev) => [
-      ...prev,
-      {
-        reason: reasonId,
-        pushed_back: reasonId === 'focus_broke' && breakReason === 'focus_broke',
-        taken_at_seconds: subjectTotal - subjectSecondsLeft,
-        planned_seconds: seconds,
-      },
-    ]);
+  function startBreak(reason: string, pushed: boolean) {
+    setBreaksTaken((b) => [...b, { reason, pushed, at: total - secondsLeft }]);
+    setBreakSeconds(blitz ? 120 : reason === 'think' ? 600 : 300);
+    setPushback(false);
     setStage('break');
   }
 
-  function endBreakEarly() {
-    setSubjectBreaks((prev) => {
-      if (!prev.length) return prev;
-      const last = prev[prev.length - 1];
-      const updated = [...prev.slice(0, -1), { ...last, planned_seconds: last.planned_seconds - breakSeconds }];
-      return updated;
-    });
-    setBreakSeconds(0);
+  function toggleFailTag(tag: string) {
+    setFailTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   }
 
-  function addTime(minutes: number) {
-    setSubjectSecondsLeft(minutes * 60);
-    setTotalSecondsLeft((s) => s + minutes * 60);
-    setStage('active');
-  }
-
-  function moveOnToReview() {
-    setStage('subject-review');
-  }
-
-  async function submitReview() {
+  async function finishReview() {
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (user && currentSubject) {
-        const { data: sessionRow } = await supabase
+      if (user) {
+        const microSteps = steps.filter((s) => s.trim());
+        const { data: row } = await supabase
           .from('sessions')
           .insert({
             user_id: user.id,
-            subject_id: currentSubject.id,
-            session_type: category,
-            goal: category === 'deep' ? goal : microSteps,
-            micro_steps: microSteps ? microSteps.split('\n').filter((l) => l.trim()) : null,
+            subject_id: current?.id ?? null,
+            session_type: blitz ? 'blitz' : category,
+            goal: goal || current?.name || null,
+            micro_steps: microSteps.length ? microSteps : null,
             depth_rating: category === 'deep' ? depth : null,
-            planned_seconds: subjectTotal,
-            actual_seconds: subjectTotal - subjectSecondsLeft,
-            brain_dump: brainDump,
-            finished_goal: reviewFinished,
-            failure_tags: reviewBlocker ? [reviewBlocker] : [],
-            started_at: new Date(Date.now() - (subjectTotal - subjectSecondsLeft) * 1000).toISOString(),
+            planned_seconds: total,
+            actual_seconds: total - secondsLeft,
+            brain_dump: brainDump || null,
+            finished_goal: finishedMicro,
+            failure_tags: failTags.length ? failTags : [],
+            started_at: new Date(Date.now() - (total - secondsLeft) * 1000).toISOString(),
             ended_at: new Date().toISOString(),
           })
           .select('id')
           .single();
-
-        if (sessionRow && subjectBreaks.length) {
+        if (row && breaksTaken.length) {
           await supabase.from('breaks').insert(
-            subjectBreaks.map((b) => ({
-              session_id: sessionRow.id,
-              reason: b.reason,
-              pushed_back: b.pushed_back,
-              taken_at_seconds: b.taken_at_seconds,
-              duration_seconds: b.planned_seconds,
+            breaksTaken.map((b) => ({
+              session_id: row.id,
+              reason: b.reason === 'focus' ? 'focus_broke' : b.reason === 'think' ? 'need_to_think' : b.reason === 'water' ? 'water_movement' : 'natural',
+              pushed_back: b.pushed,
+              taken_at_seconds: b.at,
             })),
           );
         }
       }
     } catch {
-      // demo mode
+      /* demo mode */
     }
 
-    // mark this subject done in schedule
-    const updatedSchedule = schedule.map((i) => (i.id === currentSubject.id ? { ...i, done: true } : i));
-    setSchedule(updatedSchedule);
-    saveSchedule(updatedSchedule);
+    if (current) {
+      const updated = schedule.map((i) => (i.id === current.id ? { ...i, done: true } : i));
+      setSchedule(updated);
+      saveSchedule(updated);
+    }
 
-    setReviewFinished(null);
-    setReviewBlocker(null);
-    setBreaksThisSubject(0);
-    setSubjectBreaks([]);
+    // reset per-subject ritual inputs
+    setFinishedMicro(null);
+    setFailTags([]);
+    setGoal('');
+    setSteps(['', '', '', '']);
+    setDepth(0);
+    setBrainDump('');
+    setLock1(false);
+    setLock2(false);
+    setRunwaySuccess('');
+    setRunwayAction('');
 
-    if (subjectIdx + 1 < queue.length) {
-      setSubjectIdx((i) => i + 1);
-      setSubjectSecondsLeft(queue[subjectIdx + 1].minutes * 60);
-      setStage('active');
+    if (blitz) {
+      setBlitz(false);
+      setStage('complete');
+      return;
+    }
+    if (index + 1 < queue.length) {
+      setIndex((i) => i + 1);
+      setStage('categorize');
     } else {
-      setStage('session-complete');
+      setStage('complete');
     }
   }
 
-  // ===================== RENDER =====================
+  // timer ring geometry
+  const C = 2 * Math.PI * 70;
+  const pct = total > 0 ? secondsLeft / total : 1;
 
   if (stage === 'loading') return null;
 
+  // ================= NON-FLOW SCREENS =================
+  if (stage === 'needs-intro') {
+    return (
+      <div className="screen">
+        <div className="content center-col" style={{ textAlign: 'center', alignItems: 'center' }}>
+          <div className="ritual-icon">📘</div>
+          <h2 style={{ marginBottom: 8 }}>Watch the intro lesson first</h2>
+          <p style={{ marginBottom: 24 }}>Before your first session, watch the short intro on how DeskHabits works.</p>
+          <Link href="/course" className="btn btn-primary" style={{ display: 'block', textAlign: 'center' }}>Go to Course →</Link>
+          <Link href="/home" className="nav-btn" style={{ marginTop: 16, flexDirection: 'row' }}>Back to Home</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (stage === 'no-schedule') {
+    return (
+      <div className="screen">
+        <div className="content center-col" style={{ textAlign: 'center', alignItems: 'center' }}>
+          <div className="ritual-icon">🗓️</div>
+          <h2 style={{ marginBottom: 8 }}>You haven&apos;t scheduled today yet</h2>
+          <p style={{ marginBottom: 24 }}>Block out your work periods to start your first session.</p>
+          <Link href="/session/schedule" className="btn btn-primary" style={{ display: 'block', textAlign: 'center' }}>Build Your Plan →</Link>
+          <Link href="/home" className="nav-btn" style={{ marginTop: 16, flexDirection: 'row' }}>Back to Home</Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <main className="flex min-h-screen flex-col px-6 py-8">
-      {/* NEEDS INTRO COURSE */}
-      {stage === 'needs-intro' && (
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <h2 className="mb-2 font-serif text-xl">Watch the intro lesson first</h2>
-          <p className="mb-6 text-sm text-muted">
-            Before your first work session, watch the short intro on how DeskHabits works and the science behind deep focus.
-          </p>
-          <Link href="/course" className="w-full rounded-xl2 bg-accent py-4 text-center font-serif text-lg font-semibold text-ink">
-            Go to Course →
-          </Link>
-          <Link href="/home" className="mt-3 text-sm text-muted">Back to Home</Link>
-        </div>
-      )}
-
-      {/* NO SCHEDULE YET */}
-      {stage === 'no-schedule' && (
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <h2 className="mb-2 font-serif text-xl">You haven't scheduled today yet</h2>
-          <p className="mb-6 text-sm text-muted">Block out your work periods to start your first session.</p>
-          <Link href="/session/schedule" className="w-full rounded-xl2 bg-accent py-4 text-center font-serif text-lg font-semibold text-ink">
-            Block Out Your Work →
-          </Link>
-          <Link href="/home" className="mt-3 text-sm text-muted">Back to Home</Link>
-        </div>
-      )}
-
-      {/* CATEGORY PICK */}
-      {stage === 'category-pick' && (
-        <div className="flex flex-1 flex-col">
-          <h2 className="mb-5 font-serif text-xl">What do you want to work on?</h2>
-          <div className="space-y-3">
-            {(['deep', 'light'] as const).map((cat) => {
-              const items = schedule.filter((i) => i.category === cat && !i.done);
-              if (!items.length) return null;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => beginCategory(cat, schedule)}
-                  className="w-full rounded-xl2 border border-border bg-panel p-4 text-left"
-                >
-                  <div className="font-serif text-lg">{cat === 'deep' ? 'Deep Work' : 'Light Work'}</div>
-                  <div className="text-xs text-muted">{items.map((i) => i.name).join(', ')}</div>
-                  <div className="text-xs text-muted">{items.reduce((s, i) => s + i.minutes, 0)} min total</div>
-                </button>
-              );
-            })}
+    <div className="screen fade-in">
+      {/* CATEGORIZE */}
+      {stage === 'categorize' && current && (
+        <div className="content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+          <h3 style={{ marginBottom: 8 }}>SUBJECT {index + 1} OF {queue.length}</h3>
+          <h1 style={{ marginBottom: 6 }}>{current.name}</h1>
+          <p style={{ marginBottom: 30 }}>How are you working on this subject today?</p>
+          <div className="card" style={{ width: '100%', cursor: 'pointer', borderColor: 'var(--accent)' }} onClick={() => categorize('deep')}>
+            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>🧠 Deep Work</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Test prep, projects, essays — work that requires undistracted focus</div>
           </div>
-          <div className="flex-1" />
-          <Link href="/home" className="text-center text-sm text-muted">Back to Home</Link>
+          <div className="card" style={{ width: '100%', cursor: 'pointer' }} onClick={() => categorize('light')}>
+            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>📋 Light Work</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Assignments, memorization, notes — routine tasks</div>
+          </div>
         </div>
+      )}
+
+      {/* RITUAL: ENVIRONMENT LOCK */}
+      {stage === 'r-lock' && (
+        <>
+          <RitualBar step={1} />
+          <div className="ritual-center">
+            <div className="ritual-icon">🔒</div>
+            <div className="ritual-title">Environment Lock</div>
+            <div className="ritual-sub">The environment does the willpower work, so you don&apos;t have to.</div>
+            <div className={`check-row ${lock1 ? 'done' : ''}`} onClick={() => setLock1(!lock1)} style={{ width: '100%' }}>
+              <div className="check" />
+              <div style={{ fontSize: 14, fontWeight: 600 }}>Phone in another room or on airplane mode</div>
+            </div>
+            <div className={`check-row ${lock2 ? 'done' : ''}`} onClick={() => setLock2(!lock2)} style={{ width: '100%' }}>
+              <div className="check" />
+              <div style={{ fontSize: 14, fontWeight: 600 }}>Distracting browser tabs / extensions blocked</div>
+            </div>
+            <div className="check-row" style={{ cursor: 'default', width: '100%' }}>
+              <div style={{ textAlign: 'left', flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Choose your ambient sound</div>
+                <div className="mc-grid">
+                  {['Brown Noise', 'Binaural Beats', 'Silence'].map((a) => (
+                    <div key={a} className={`tag ${ambient === a ? 'selected' : ''}`} onClick={() => setAmbient(a)}>{a}</div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style={{ padding: '0 24px 24px' }}>
+            <button className="btn btn-primary" disabled={!(lock1 && lock2)} onClick={() => setStage('r-clear')}>Continue →</button>
+          </div>
+        </>
+      )}
+
+      {stage === 'r-clear' && (
+        <RitualSimple step={2} icon="🧹" title="Clear Your Desk" sub="Only what you need for this session should remain in front of you." btn="Done" onNext={() => setStage('r-water')} />
+      )}
+      {stage === 'r-water' && (
+        <RitualSimple step={3} icon="💧" title="Obtain a Full Glass of Water" sub="Hydration supports sustained cognitive performance." btn="Done" onNext={() => setStage('r-dump')} />
       )}
 
       {/* BRAIN DUMP */}
-      {stage === 'braindump' && (
-        <div className="flex flex-1 flex-col">
-          <h2 className="mb-2 font-serif text-xl">Loading Dock</h2>
-          <textarea
-            value={brainDump}
-            onChange={(e) => setBrainDump(e.target.value)}
-            placeholder="Dump every distracting thought here..."
-            className="mb-6 h-40 rounded-xl2 border border-border bg-panel p-4 text-sm outline-none focus:border-accent"
-          />
-          <div className="flex-1" />
-          <button onClick={() => setStage('goal')} className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
-            Continue →
-          </button>
-        </div>
+      {stage === 'r-dump' && (
+        <>
+          <RitualBar step={4} />
+          <div className="content">
+            <div className="ritual-icon" style={{ textAlign: 'center' }}>🗑️</div>
+            <h2 style={{ textAlign: 'center', marginBottom: 8 }}>The Loading Dock</h2>
+            <p style={{ textAlign: 'center', marginBottom: 18 }}>Dump everything competing for your attention right now. Once it&apos;s written down, your brain can let it go.</p>
+            <textarea rows={6} value={brainDump} onChange={(e) => setBrainDump(e.target.value)} placeholder="e.g. text Mom back, finish laundry, that argument is still bugging me..." />
+          </div>
+          <div style={{ padding: '0 20px 20px' }}>
+            <button className="btn btn-primary" onClick={afterDump}>Capture &amp; Continue →</button>
+          </div>
+        </>
       )}
 
-      {/* GOAL / MICRO-STEPS */}
-      {stage === 'goal' && (
-        <div className="flex flex-1 flex-col">
-          {category === 'deep' ? (
-            <>
-              <h2 className="mb-2 font-serif text-xl">Set Your Goal</h2>
-              <textarea
-                value={goal}
-                onChange={(e) => setGoal(e.target.value)}
-                placeholder="What does success look like for this session?"
-                className="mb-4 h-24 rounded-xl2 border border-border bg-panel p-4 text-sm outline-none focus:border-accent"
-              />
-            </>
-          ) : (
-            <h2 className="mb-2 font-serif text-xl">Break this down into mini steps</h2>
-          )}
+      {/* DEEP: GOAL */}
+      {stage === 'r-goal' && (
+        <>
+          <RitualBar step={5} />
+          <div className="content">
+            <div className="ritual-icon" style={{ textAlign: 'center' }}>🎯</div>
+            <h2 style={{ textAlign: 'center', marginBottom: 8 }}>Define Your Single Target</h2>
+            <p style={{ textAlign: 'center', marginBottom: 14 }}>What does &quot;done&quot; look like at the end of this session?</p>
+            <textarea rows={2} value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="e.g. Finish problems 12-20 in Chapter 4" style={{ marginBottom: 14 }} />
+            <h3 style={{ marginBottom: 8 }}>Break it into 3–5 micro-steps</h3>
+            {steps.map((s, i) => (
+              <input key={i} type="text" value={s} placeholder={`${i + 1}. ${['Re-read worked example', 'Attempt problems 12-15', 'Attempt problems 16-20', 'Check answers, flag mistakes'][i]}`}
+                onChange={(e) => setSteps((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))} style={{ marginBottom: 8 }} />
+            ))}
+          </div>
+          <div style={{ padding: '0 20px 20px' }}>
+            <button className="btn btn-primary" disabled={!goal.trim()} onClick={() => setStage('r-depth')}>Continue →</button>
+          </div>
+        </>
+      )}
 
-          <textarea
-            value={microSteps}
-            onChange={(e) => setMicroSteps(e.target.value)}
-            placeholder="List the small steps you'll take, one at a time..."
-            className="mb-6 h-28 rounded-xl2 border border-border bg-panel p-4 text-sm outline-none focus:border-accent"
-          />
-
-          {category === 'deep' && (
-            <>
-              <label className="mb-2 text-xs uppercase tracking-wide text-muted">How deep are you committing? (1-10)</label>
-              <div className="mb-2 flex gap-1">
-                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                  <button key={n} onClick={() => setDepth(n)} className={`h-8 flex-1 rounded ${n <= depth ? 'bg-accent' : 'bg-border'}`} />
-                ))}
+      {/* DEEP: DEPTH */}
+      {stage === 'r-depth' && (
+        <>
+          <RitualBar step={6} />
+          <div className="ritual-center">
+            <div className="ritual-icon">⭐</div>
+            <div className="ritual-title">Rate the Intellectual Depth</div>
+            <div className="ritual-sub">How demanding is this session, 1–10?</div>
+            <div className="star-row">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <span key={i} className={`star ${i < depth ? 'on' : ''}`} onClick={() => setDepth(i + 1)}>★</span>
+              ))}
+            </div>
+            {depth >= 7 && (
+              <div style={{ marginTop: 10, padding: 14, background: 'rgba(108,99,255,.12)', border: '1px solid var(--accent)', borderRadius: 12, fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>
+                This session requires my full capacity.
               </div>
-              {depth >= 7 && (
-                <div className="mb-4 rounded-lg border border-accent bg-panel2 p-3 text-xs text-accent">
-                  You're putting your reputation on the line for this one. No backing out.
-                </div>
-              )}
-            </>
-          )}
-
-          <div className="flex-1" />
-          <button
-            disabled={category === 'deep' ? !goal.trim() : !microSteps.trim()}
-            onClick={() => setStage('breathing')}
-            className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink disabled:opacity-40"
-          >
-            Continue →
-          </button>
-        </div>
+            )}
+          </div>
+          <div style={{ padding: '0 24px 24px' }}>
+            <button className="btn btn-primary" disabled={depth === 0} onClick={() => setStage('r-breath')}>Continue →</button>
+          </div>
+        </>
       )}
 
-      {/* BREATHING */}
-      {stage === 'breathing' && (
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <div className="mb-6 h-32 w-32 animate-pulse rounded-full border-4 border-accent" />
-          <h2 className="mb-2 font-serif text-xl">Breathe</h2>
-          <p className="mb-8 text-sm text-muted">Take three slow breaths. In for 4, out for 6.</p>
-          <button onClick={() => setStage('incantation')} className="w-full rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
-            I'm Ready →
-          </button>
-        </div>
+      {stage === 'r-breath' && (
+        <RitualSimple step={7} icon="🫁" title="5 Slow, Deep Breaths" sub="In for 4... out for 6. Find your stillness before you begin." btn="I'm Ready" onNext={() => setStage('r-incant')} full />
       )}
 
       {/* INCANTATION */}
-      {stage === 'incantation' && (
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <h2 className="mb-4 font-serif text-xl">Say it out loud</h2>
-          <p className="mb-2 px-4 font-serif text-lg italic">
-            "I will go as long as I can without taking breaks and getting distracted."
-          </p>
-          <p className="mb-8 text-sm text-muted">
-            Total session: {Math.round((totalSecondsLeft / 60) * 10) / 10} minutes across {queue.length} subject{queue.length > 1 ? 's' : ''}
-          </p>
-          <button onClick={() => setStage('environment')} className="w-full rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
-            Continue →
-          </button>
-        </div>
-      )}
-
-      {/* ENVIRONMENT LOCK (last) */}
-      {stage === 'environment' && (
-        <div className="flex flex-1 flex-col">
-          <h2 className="mb-5 font-serif text-xl">Lock In Your Environment</h2>
-          <div className="mb-6 space-y-3">
-            {ENV_ITEMS.map((item, i) => (
-              <label key={item} className="flex items-center gap-3 rounded-lg border border-border bg-panel px-4 py-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={checks[i]}
-                  onChange={() => setChecks((c) => c.map((v, idx) => (idx === i ? !v : v)))}
-                  className="h-4 w-4 accent-[#e8d9b5]"
-                />
-                {item}
-              </label>
-            ))}
-          </div>
-          <div className="flex-1" />
-          <button
-            disabled={!checks.every(Boolean)}
-            onClick={startActive}
-            className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink disabled:opacity-40"
-          >
-            Start Session ▶
-          </button>
-        </div>
-      )}
-
-      {/* ACTIVE */}
-      {stage === 'active' && currentSubject && (
-        <div className="flex flex-1 flex-col items-center">
-          <div className="mb-1 text-xs uppercase tracking-widest text-muted">
-            Subject {subjectIdx + 1} of {queue.length} · {category === 'deep' ? 'Deep Work' : 'Light Work'}
-          </div>
-          <div className="mb-4 font-serif text-lg">{currentSubject.name}</div>
-
-          <div className="relative my-4 flex h-44 w-44 items-center justify-center">
-            <svg viewBox="0 0 200 200" className="h-44 w-44 -rotate-90">
-              <circle cx="100" cy="100" r={radius} fill="none" stroke="#2a3354" strokeWidth="10" />
-              <circle
-                cx="100" cy="100" r={radius} fill="none" stroke="#e8d9b5" strokeWidth="10"
-                strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)} strokeLinecap="round"
-              />
-            </svg>
-            <div className="absolute font-serif text-2xl">{fmt(subjectSecondsLeft)}</div>
-          </div>
-
-          <div className="mb-6 text-sm text-muted">Total remaining: {fmt(totalSecondsLeft)}</div>
-
-          {showBreakWarning && (
-            <div className="mb-4 w-full rounded-xl2 border border-red bg-panel2 p-4 text-center text-sm text-red">
-              Taking several breaks is counterproductive to the deep work strategy.
-              <button onClick={() => setShowBreakWarning(false)} className="mt-2 block w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink">
-                Got it
-              </button>
+      {stage === 'r-incant' && (
+        <>
+          <div className="ritual-center">
+            <div className="ritual-icon">🗣️</div>
+            <div className="ritual-title">The Incantation</div>
+            <div className="ritual-sub">Read this aloud. Then confirm.</div>
+            <div className="pledge-box" style={{ textAlign: 'left' }}>
+              &quot;For the next <b>{current ? current.minutes : 50} minutes</b> I will work on <b>{goal || current?.name}</b>, and I will not stop for anything less than a genuine emergency.&quot;
             </div>
-          )}
-
-          <div className="flex w-full flex-col gap-2">
-            <button onClick={moveOnToReview} className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
-              I'm Finished ✓
-            </button>
-            <button onClick={requestBreak} className="rounded-xl2 border border-border py-3 text-center text-sm text-muted">
-              Take a break
-            </button>
           </div>
+          <div style={{ padding: '0 24px 24px' }}>
+            <button className="btn btn-primary" onClick={() => setStage('runway')}>I Commit</button>
+          </div>
+        </>
+      )}
+
+      {/* RUNWAY */}
+      {stage === 'runway' && (
+        <>
+          <div className="content">
+            <div className="ritual-icon" style={{ textAlign: 'center' }}>🛫</div>
+            <h2 style={{ textAlign: 'center', marginBottom: 8 }}>The Runway</h2>
+            <p style={{ textAlign: 'center', marginBottom: 18 }}>Two questions before the clock starts.</p>
+            <h3 style={{ marginBottom: 6 }}>What does success look like at the end of this session?</h3>
+            <textarea rows={2} value={runwaySuccess} onChange={(e) => setRunwaySuccess(e.target.value)} placeholder="e.g. All 8 problems attempted with work shown" style={{ marginBottom: 16 }} />
+            <h3 style={{ marginBottom: 6 }}>What is the FIRST physical action you&apos;ll take?</h3>
+            <textarea rows={2} value={runwayAction} onChange={(e) => setRunwayAction(e.target.value)} placeholder="e.g. Open the textbook to page 142 and re-read the worked example" />
+          </div>
+          <div style={{ padding: '0 20px 20px' }}>
+            <button className="btn btn-primary" disabled={!runwayAction.trim()} onClick={() => beginSession('deep')}>Begin Session →</button>
+          </div>
+        </>
+      )}
+
+      {/* LIGHT START */}
+      {stage === 'l-start' && (
+        <RitualSimple icon="📵" title="Put Your Phone Aside and Begin" sub="Light work session — assignments, memorization, notes." btn="Begin Session →" onNext={() => beginSession('light')} full />
+      )}
+
+      {/* BLITZ CONFIRM */}
+      {stage === 'blitzconfirm' && (
+        <div className="content center-col" style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>⚡</div>
+          <h1 style={{ color: 'var(--red)', marginBottom: 10 }}>Enter Blitz Mode?</h1>
+          <p style={{ marginBottom: 20 }}>Blitz mode shortens breaks, increases session intensity, and turns the whole app red. You&apos;ll be watched. There is no soft opt-out.</p>
+          <button className="btn btn-blitz" onClick={enterBlitz}>⚡ Activate Blitz Mode</button>
+          <div style={{ height: 10 }} />
+          <button className="btn btn-ghost" onClick={() => router.push('/home')}>Never mind</button>
         </div>
       )}
 
-      {/* NEED MORE TIME */}
-      {stage === 'need-more-time' && currentSubject && (
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <h2 className="mb-2 font-serif text-xl">Time's up on {currentSubject.name}</h2>
-          <p className="mb-6 text-sm text-muted">Do you need more time, or can you move on?</p>
-          <div className="w-full space-y-2">
-            <button onClick={() => addTime(5)} className="w-full rounded-lg border border-border bg-panel px-4 py-3 text-sm">+5 more minutes</button>
-            <button onClick={() => addTime(10)} className="w-full rounded-lg border border-border bg-panel px-4 py-3 text-sm">+10 more minutes</button>
-            <button onClick={moveOnToReview} className="w-full rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
-              I'm Finished — Move On →
-            </button>
+      {/* SESSION */}
+      {stage === 'session' && (
+        <>
+          {blitz && <div className="blitz-banner">⚡ BLITZ MODE — FATA IS WATCHING</div>}
+          {blitz && <div className="eyes-row"><div className="eye" /><div className="eye" /></div>}
+          <div className="session-header">
+            <div className="subject">{(current?.name ?? 'Session').toUpperCase()} · {blitz ? 'BLITZ MODE' : category === 'deep' ? 'DEEP WORK' : 'LIGHT WORK'}</div>
+            <div className="task-title">{goal || current?.name || 'Focus'}</div>
           </div>
-        </div>
+          <div className="timer-ring-wrap">
+            <div className="timer-ring">
+              <svg width="160" height="160" viewBox="0 0 160 160">
+                <circle cx="80" cy="80" r="70" fill="none" stroke="#2e2e40" strokeWidth="9" />
+                <circle cx="80" cy="80" r="70" fill="none" stroke={blitz ? '#f87171' : '#6c63ff'} strokeWidth="9" strokeDasharray={C} strokeDashoffset={C * (1 - pct)} strokeLinecap="round" />
+              </svg>
+              <div className="timer-label">
+                <div className="timer-digits">{fmt(secondsLeft)}</div>
+                <div className="timer-sub">REMAINING</div>
+              </div>
+            </div>
+          </div>
+          <div className="content" style={{ paddingTop: 0 }}>
+            {showPulse && (
+              <div className="card">
+                <h3 style={{ marginBottom: 8 }}>Mid-Session Pulse</h3>
+                <p style={{ marginBottom: 8 }}>Are you on the micro-plan? Which step are you on?</p>
+                <div className="mc-grid">
+                  {['Step 1', 'Step 2', 'Step 3', 'Off-plan'].map((p) => (
+                    <div key={p} className={`tag ${pulseStep === p ? 'selected' : ''}`} onClick={() => setPulseStep(p)}>{p}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {showDial && (
+              <div className="card">
+                <h3 style={{ marginBottom: 8 }}>Quick Depth Check</h3>
+                <p style={{ marginBottom: 8 }}>Rate your depth right now, 1–5</p>
+                <div className="star-row" style={{ fontSize: 24 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span key={i} className={`star ${i < dialRating ? 'on' : ''}`} onClick={() => setDialRating(i + 1)}>★</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8, fontWeight: 600 }}>DISTRACTION LOG ({distractions.length})</div>
+            <div style={{ minHeight: 24, marginBottom: 12 }}>
+              {distractions.length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--border)' }}>None yet</div>
+              ) : (
+                distractions.map((d, i) => (
+                  <span key={i} className="tag" style={{ marginRight: 4, marginBottom: 4, display: 'inline-block' }}>⚠ {d}</span>
+                ))
+              )}
+            </div>
+            <div className="divider" />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-ghost btn-sm" onClick={logDistraction} style={{ flex: 1 }}>⚠ Log Distraction</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setPushback(false); setStage('breakreason'); }} style={{ flex: 1 }}>Take a Break</button>
+            </div>
+            <button className="btn btn-danger btn-sm" style={{ width: '100%', marginTop: 10 }} onClick={() => setStage('review')}>End Session</button>
+          </div>
+        </>
+      )}
+
+      {/* STRUGGLE */}
+      {stage === 'struggle' && (
+        <>
+          <div className="ritual-center">
+            <div className="ritual-icon">🤔</div>
+            <div className="ritual-title">Let&apos;s name it.</div>
+            <div className="ritual-sub">You&apos;ve flagged 3 distractions in a row. What specifically is hard about this right now?</div>
+            <textarea rows={3} placeholder="e.g. I don't know how to start this argument..." style={{ textAlign: 'left' }} />
+          </div>
+          <div style={{ padding: '0 24px 24px' }}>
+            <button className="btn btn-primary" onClick={closeStruggle}>Back to Work</button>
+          </div>
+        </>
       )}
 
       {/* BREAK REASON */}
-      {stage === 'break-reason' && (
-        <div className="flex flex-1 flex-col">
-          <h2 className="mb-4 font-serif text-xl">Taking a break?</h2>
-
-          {showFocusPushback ? (
-            <div className="rounded-xl2 border border-accent bg-panel2 p-4 text-sm">
-              <p className="mb-3 text-accent">The discomfort is your poor attention span. Try 5 more minutes to improve.</p>
-              <div className="flex flex-col gap-2">
-                <button onClick={() => { setShowFocusPushback(false); setStage('active'); }} className="rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-ink">
-                  Try 5 more minutes
-                </button>
-                <button onClick={() => actuallyTakeBreak('focus_broke')} className="rounded-lg border border-border px-4 py-3 text-sm text-muted">
-                  Take the break anyway
-                </button>
+      {stage === 'breakreason' && (
+        <div className="content center-col">
+          <h2 style={{ marginBottom: 4 }}>Why are you taking a break?</h2>
+          <p style={{ marginBottom: 18 }}>Be honest — this trains your future sessions.</p>
+          {[
+            { id: 'natural', label: '✅ I hit a natural stopping point' },
+            { id: 'focus', label: '😵 My focus broke' },
+            { id: 'think', label: '🚶 I need to think away from the screen' },
+            { id: 'water', label: '💧 I need water or movement' },
+          ].map((r) => (
+            <div key={r.id} className="card" style={{ cursor: 'pointer' }} onClick={() => chooseBreakReason(r.id)}>
+              <div style={{ fontWeight: 700 }}>{r.label}</div>
+            </div>
+          ))}
+          {pushback && (
+            <div className="card">
+              <div style={{ fontSize: 13, color: 'var(--yellow)', fontWeight: 700, marginBottom: 10 }}>The discomfort is the deep work. Try 5 more minutes before stopping?</div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={() => { setPushback(false); setStage('session'); }}>5 More Minutes</button>
+                <button className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => startBreak('focus', true)}>Take Break Anyway</button>
               </div>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {BREAK_REASONS.map((r) => (
-                <button key={r.id} onClick={() => confirmBreakReason(r.id)} className="w-full rounded-lg border border-border bg-panel px-4 py-3 text-left text-sm">
-                  {r.label}
-                </button>
-              ))}
-            </div>
           )}
-
-          <div className="flex-1" />
-          <button onClick={() => setStage('active')} className="text-center text-sm text-muted">Never mind, keep going</button>
         </div>
       )}
 
       {/* BREAK */}
       {stage === 'break' && (
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <div className="mb-2 text-xs uppercase tracking-widest text-muted">Break</div>
-          <div className="mb-6 font-serif text-5xl">{fmt(breakSeconds)}</div>
-          <div className="mb-6 grid w-full grid-cols-2 gap-2 text-sm">
-            <div className="rounded-lg border border-green p-3 text-green">✓ Stretch</div>
-            <div className="rounded-lg border border-green p-3 text-green">✓ Water</div>
-            <div className="rounded-lg border border-green p-3 text-green">✓ Walk</div>
-            <div className="rounded-lg border border-red p-3 text-red">✗ Phone / social media</div>
+        <div className="content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+          <h3>PRODUCTIVE BREAK</h3>
+          <div style={{ fontSize: 60, fontWeight: 900, letterSpacing: '-3px', color: 'var(--green)', margin: '16px 0' }}>{fmt(breakSeconds)}</div>
+          <p style={{ marginBottom: 16 }}>Get a snack, stretch, or step outside. Session resumes automatically.</p>
+          <div className="mc-grid" style={{ width: '100%' }}>
+            <div className="card" style={{ textAlign: 'center' }}><div style={{ fontSize: 26 }}>🍎</div><div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Snack</div></div>
+            <div className="card" style={{ textAlign: 'center' }}><div style={{ fontSize: 26 }}>🚶</div><div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Walk</div></div>
+            <div className="card" style={{ textAlign: 'center', opacity: 0.35 }}><div style={{ fontSize: 26 }}>📱</div><div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Phone (locked)</div></div>
+            <div className="card" style={{ textAlign: 'center', opacity: 0.35 }}><div style={{ fontSize: 26 }}>📺</div><div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Video (locked)</div></div>
           </div>
-          <button onClick={endBreakEarly} className="w-full rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
-            End Break Early →
-          </button>
+          <button className="btn btn-ghost btn-sm" style={{ marginTop: 16 }} onClick={() => setBreakSeconds(0)}>End break early →</button>
         </div>
       )}
 
-      {/* SUBJECT REVIEW */}
-      {stage === 'subject-review' && currentSubject && (
-        <div className="flex flex-1 flex-col">
-          <h2 className="mb-2 font-serif text-xl">{currentSubject.name}</h2>
-          <p className="mb-4 text-sm text-muted">Did you finish your work?</p>
-          <div className="mb-6 grid grid-cols-2 gap-3">
-            <button onClick={() => setReviewFinished(true)} className={`rounded-lg border py-3 text-sm ${reviewFinished === true ? 'border-green bg-panel2 text-green' : 'border-border bg-panel text-muted'}`}>Yes</button>
-            <button onClick={() => setReviewFinished(false)} className={`rounded-lg border py-3 text-sm ${reviewFinished === false ? 'border-red bg-panel2 text-red' : 'border-border bg-panel text-muted'}`}>No</button>
-          </div>
-
-          {reviewFinished === false && (
-            <>
-              <p className="mb-3 text-sm text-muted">What got in your way?</p>
-              <div className="mb-6 space-y-2">
-                {BLOCKER_TAGS.map((tag) => (
-                  <button key={tag} onClick={() => setReviewBlocker(tag)} className={`w-full rounded-lg border px-4 py-3 text-left text-sm ${reviewBlocker === tag ? 'border-accent bg-panel2' : 'border-border bg-panel text-muted'}`}>
-                    {tag}
-                  </button>
-                ))}
+      {/* REVIEW */}
+      {stage === 'review' && (
+        <div className="content">
+          <h3 style={{ marginBottom: 8 }}>Session Complete</h3>
+          <h2 style={{ marginBottom: 18 }}>{current?.name ?? 'Session'} — {blitz ? 'Blitz' : category === 'deep' ? 'Deep Work' : 'Light Work'}</h2>
+          <div className="card">
+            <h3 style={{ marginBottom: 10 }}>Did you finish your work?</h3>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-ghost btn-sm" style={{ flex: 1, ...(finishedMicro === true ? { borderColor: 'var(--green)', color: 'var(--green)' } : {}) }} onClick={() => setFinishedMicro(true)}>Yes ✓</button>
+              <button className="btn btn-ghost btn-sm" style={{ flex: 1, ...(finishedMicro === false ? { borderColor: 'var(--red)', color: 'var(--red)' } : {}) }} onClick={() => setFinishedMicro(false)}>No</button>
+            </div>
+            {finishedMicro === false && (
+              <div style={{ marginTop: 10 }}>
+                <p style={{ marginBottom: 8 }}>What got in the way?</p>
+                <div className="tag-row">
+                  {FAIL_TAGS.map((tag) => (
+                    <div key={tag} className={`tag warn ${failTags.includes(tag) ? 'selected' : ''}`} onClick={() => toggleFailTag(tag)}>{tag}</div>
+                  ))}
+                </div>
               </div>
-            </>
-          )}
-
-          <div className="flex-1" />
-          <button
-            disabled={reviewFinished === null || (reviewFinished === false && !reviewBlocker)}
-            onClick={submitReview}
-            className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink disabled:opacity-40"
-          >
-            {subjectIdx + 1 < queue.length ? 'Next Subject →' : 'Finish Session →'}
+            )}
+          </div>
+          <div className="card">
+            <h3 style={{ marginBottom: 10 }}>Session Stats</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}><span style={{ fontSize: 13, color: 'var(--muted)' }}>Distractions logged</span><b>{distractions.length}</b></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}><span style={{ fontSize: 13, color: 'var(--muted)' }}>Breaks taken</span><b>{breaksTaken.length}</b></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}><span style={{ fontSize: 13, color: 'var(--muted)' }}>A stone has been added 🪨</span><b style={{ color: 'var(--accent)' }}>+1</b></div>
+          </div>
+          <button className="btn btn-primary" disabled={finishedMicro === null} onClick={finishReview}>
+            {index + 1 < queue.length && !blitz ? 'Next Subject →' : 'Done → Back to Plan'}
           </button>
+          <div style={{ height: 16 }} />
         </div>
       )}
 
-      {/* SESSION COMPLETE */}
-      {stage === 'session-complete' && (
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <h2 className="mb-2 font-serif text-xl">Session Complete</h2>
-          <p className="mb-8 text-sm text-muted">Nice work. Your analytics have been updated.</p>
-          <Link href="/home" className="w-full rounded-xl2 bg-accent py-4 text-center font-serif text-lg font-semibold text-ink">
-            Back to Home
-          </Link>
+      {/* COMPLETE */}
+      {stage === 'complete' && (
+        <div className="content center-col" style={{ textAlign: 'center', alignItems: 'center' }}>
+          <div className="ritual-icon">🪨</div>
+          <h1 style={{ marginBottom: 8 }}>That&apos;s a wrap.</h1>
+          <p style={{ marginBottom: 24 }}>Every session you complete lays another stone. Your analytics have been updated.</p>
+          <Link href="/home" className="btn btn-primary" style={{ display: 'block', textAlign: 'center' }}>Back to Plan</Link>
         </div>
       )}
-    </main>
+
+      {toast && <div className="toast show">{toast}</div>}
+    </div>
+  );
+}
+
+// ---------- ritual helpers ----------
+function RitualBar({ step }: { step: number }) {
+  return (
+    <div className="ritual-progress">
+      {Array.from({ length: 7 }).map((_, i) => (
+        <div key={i} className={`seg ${i < step ? 'done' : ''}`} />
+      ))}
+    </div>
+  );
+}
+
+function RitualSimple({
+  step,
+  icon,
+  title,
+  sub,
+  btn,
+  onNext,
+  full,
+}: {
+  step?: number;
+  icon: string;
+  title: string;
+  sub: string;
+  btn: string;
+  onNext: () => void;
+  full?: boolean;
+}) {
+  return (
+    <>
+      {!full && step != null && <RitualBar step={step} />}
+      <div className="ritual-center">
+        <div className="ritual-icon">{icon}</div>
+        <div className="ritual-title">{title}</div>
+        <div className="ritual-sub">{sub}</div>
+      </div>
+      <div style={{ padding: '0 24px 24px' }}>
+        <button className="btn btn-primary" onClick={onNext}>{btn}</button>
+      </div>
+    </>
   );
 }

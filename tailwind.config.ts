@@ -5,23 +5,25 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: '#f9f6f0',         // page background (cream)
-        panel: '#ffffff',       // card / panel background
-        panel2: '#f3ede2',      // raised / secondary panel
-        border: '#e6ded2',
-        accent: '#3a8aab',      // ocean blue (ValuePiece primary)
-        muted: '#6f7585',
-        text: '#20242f',
-        green: '#16a34a',
-        yellow: '#c8862b',
-        red: '#dc2626',
+        ink: '#0f0f13',         // --bg
+        panel: '#1a1a24',       // --surface
+        panel2: '#22222f',      // --surface2
+        border: '#2e2e40',
+        accent: '#6c63ff',      // indigo (prototype primary)
+        muted: '#8888aa',
+        text: '#e8e8f0',
+        green: '#4ade80',
+        yellow: '#fbbf24',
+        red: '#f87171',
       },
       borderRadius: {
-        xl2: '20px',
+        xl2: '16px',
       },
       fontFamily: {
-        serif: ['"Playfair Display"', 'serif'],
-        sans: ['"DM Sans"', 'sans-serif'],
+        // Prototype uses a system stack for everything; map both so any
+        // lingering font-serif/font-sans utilities match the prototype.
+        serif: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
       },
     },
   },
