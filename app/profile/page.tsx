@@ -64,14 +64,14 @@ export default async function ProfilePage() {
           )}
         </div>
 
-        <div className="card">
-          <h3 style={{ marginBottom: 12 }}>Your Classes</h3>
-          {isDemo ? (
+        {isDemo ? (
+          <div className="card">
+            <h3 style={{ marginBottom: 12 }}>Your Classes</h3>
             <p>Sign in to manage your classes.</p>
-          ) : (
-            <ClassManager initial={subjects as any} />
-          )}
-        </div>
+          </div>
+        ) : (
+          <ClassManager initial={subjects as any} />
+        )}
 
         <div className="card">
           <h3 style={{ marginBottom: 8 }}>Daily commitment</h3>

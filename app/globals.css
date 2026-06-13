@@ -111,12 +111,13 @@ p { font-size: 14px; line-height: 1.6; color: var(--muted); }
 
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
 
-textarea, input[type=text], input[type=email], input[type=password] {
+textarea, input[type=text], input[type=email], input[type=password], input[type=date] {
   width: 100%; background: var(--surface2); border: 1.5px solid var(--border);
   border-radius: var(--radius-sm); padding: 12px 14px; color: var(--text);
   font-size: 14px; font-family: inherit; resize: none;
 }
 textarea:focus, input:focus { outline: none; border-color: var(--accent); }
+input[type=date] { color-scheme: dark; }
 
 /* Onboarding */
 .onboard-screen { display: flex; flex-direction: column; flex: 1; min-height: 100vh; padding: 44px 26px 28px; }

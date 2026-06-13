@@ -24,22 +24,33 @@ async function getData() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return { name: 'there', stats: EMPTY };
-    const [{ data: profile }, stats] = await Promise.all([
+    if (!user) return { name: 'there', stats: EMPTY, nextTest: null };
+    const [{ data: profile }, stats, { data: subjects }] = await Promise.all([
       supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
       getUserStats(supabase, user.id),
+      supabase.from('subjects').select('name, next_test_date').eq('user_id', user.id).not('next_test_date', 'is', null),
     ]);
     const name = profile?.full_name && profile.full_name !== user.email ? profile.full_name : 'there';
-    return { name, stats };
+
+    // Soonest upcoming test (today or later) drives the Blitz card.
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const upcoming = (subjects ?? [])
+      .filter((s: any) => s.next_test_date && s.next_test_date >= todayStr)
+      .sort((a: any, b: any) => a.next_test_date.localeCompare(b.next_test_date));
+    const nextTest = upcoming.length
+      ? { name: upcoming[0].name, days: Math.round((new Date(upcoming[0].next_test_date + 'T00:00:00').getTime() - new Date(todayStr + 'T00:00:00').getTime()) / 86400000) }
+      : null;
+
+    return { name, stats, nextTest };
   } catch {
-    return { name: 'there', stats: EMPTY };
+    return { name: 'there', stats: EMPTY, nextTest: null };
   }
 }
 
 const TOWER_ROWS = 7;
 
 export default async function HomePage() {
-  const { name, stats: s } = await getData();
+  const { name, stats: s, nextTest } = await getData();
 
   const stonesLaid = Math.max(0, Math.min(TOWER_ROWS, s.sessionsCompleted));
   const avgBeforeBreak = s.distractionFreeMinutesBeforeFirstBreak.length
@@ -81,9 +92,11 @@ export default async function HomePage() {
 
         <div className="card" style={{ background: 'rgba(248,113,113,.08)', borderColor: 'rgba(248,113,113,.2)' }}>
           <div style={{ fontSize: 12, color: 'var(--red)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.8px', marginBottom: 4 }}>
-            ⚡ Big test coming up?
+            {nextTest ? `⚠ ${nextTest.name} test ${nextTest.days === 0 ? 'today' : nextTest.days === 1 ? 'tomorrow' : `in ${nextTest.days} days`}` : '⚡ Big test coming up?'}
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Switch to Blitz Mode to ramp up intensity.</div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+            {nextTest ? 'Intensity is ramping up. Lock in with Blitz Mode.' : 'Set a test date in your profile, or jump straight into Blitz Mode.'}
+          </div>
           <Link href="/session?blitz=1" className="btn btn-blitz btn-sm" style={{ display: 'inline-block', textAlign: 'center' }}>
             ⚡ Switch to Blitz Mode
           </Link>
