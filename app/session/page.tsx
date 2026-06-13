@@ -10,7 +10,6 @@ type Stage =
   | 'loading'
   | 'needs-intro'
   | 'no-schedule'
-  | 'categorize'
   | 'r-lock'
   | 'r-clear'
   | 'r-water'
@@ -80,7 +79,14 @@ export default function SessionPage() {
       setSchedule(s.items);
       const q = s.items.filter((i) => !i.done);
       setQueue(q);
-      setStage(q.length ? 'categorize' : 'complete');
+      setIndex(0);
+      if (q.length) {
+        // Category was chosen during scheduling — go straight into the ritual.
+        setCategory(q[0].category);
+        setStage('r-lock');
+      } else {
+        setStage('complete');
+      }
     } else {
       setStage('no-schedule');
     }
@@ -119,12 +125,6 @@ export default function SessionPage() {
   }
 
   // ---------- flow actions ----------
-  function categorize(type: 'deep' | 'light') {
-    setCategory(type);
-    setPushback(false);
-    setStage('r-lock');
-  }
-
   function afterDump() {
     setStage(category === 'deep' ? 'r-goal' : 'l-start');
   }
@@ -232,9 +232,11 @@ export default function SessionPage() {
     setRunwaySuccess('');
     setRunwayAction('');
 
-    if (index + 1 < queue.length) {
-      setIndex((i) => i + 1);
-      setStage('categorize');
+    const nextIdx = index + 1;
+    if (nextIdx < queue.length) {
+      setIndex(nextIdx);
+      setCategory(queue[nextIdx].category);
+      setStage('r-lock');
     } else {
       setStage('complete');
     }
@@ -277,26 +279,14 @@ export default function SessionPage() {
 
   return (
     <div className="screen fade-in">
-      {/* CATEGORIZE */}
-      {stage === 'categorize' && current && (
-        <div className="content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-          <h3 style={{ marginBottom: 8 }}>SUBJECT {index + 1} OF {queue.length}</h3>
-          <h1 style={{ marginBottom: 6 }}>{current.name}</h1>
-          <p style={{ marginBottom: 30 }}>How are you working on this subject today?</p>
-          <div className="card" style={{ width: '100%', cursor: 'pointer', borderColor: 'var(--accent)' }} onClick={() => categorize('deep')}>
-            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>🧠 Deep Work</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Test prep, projects, essays — work that requires undistracted focus</div>
-          </div>
-          <div className="card" style={{ width: '100%', cursor: 'pointer' }} onClick={() => categorize('light')}>
-            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>📋 Light Work</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Assignments, memorization, notes — routine tasks</div>
-          </div>
-        </div>
-      )}
-
       {/* RITUAL: ENVIRONMENT LOCK */}
       {stage === 'r-lock' && (
         <>
+          <div style={{ textAlign: 'center', padding: '8px 0 0' }}>
+            <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, letterSpacing: '.8px' }}>
+              {current?.name?.toUpperCase()} · {category === 'deep' ? 'DEEP WORK' : 'LIGHT WORK'} · {index + 1}/{queue.length}
+            </span>
+          </div>
           <RitualBar step={1} />
           <div className="ritual-center">
             <div className="ritual-icon">🔒</div>

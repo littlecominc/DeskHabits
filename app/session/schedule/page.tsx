@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { saveSchedule, type ScheduleItem } from '@/lib/schedule';
+import { loadSchedule, saveSchedule, type ScheduleItem } from '@/lib/schedule';
 
 type Subject = { id: string; name: string };
+type Plan = { category: 'deep' | 'light' | null; minutes: number; done: boolean };
 
 export default function ScheduleBuilderPage() {
   const router = useRouter();
@@ -14,11 +15,7 @@ export default function ScheduleBuilderPage() {
 
   const [loading, setLoading] = useState(true);
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [index, setIndex] = useState(0);
-  const [items, setItems] = useState<ScheduleItem[]>([]);
-  const [category, setCategory] = useState<'deep' | 'light' | null>(null);
-  const [minutes, setMinutes] = useState(30);
-  const [done, setDone] = useState(false);
+  const [plan, setPlan] = useState<Record<string, Plan>>({});
 
   useEffect(() => {
     (async () => {
@@ -30,158 +27,134 @@ export default function ScheduleBuilderPage() {
         return;
       }
       const { data } = await supabase.from('subjects').select('id, name').eq('user_id', user.id).order('created_at');
-      setSubjects(data ?? []);
+      const subs = data ?? [];
+      setSubjects(subs);
+
+      // Seed from today's existing plan so edits preserve completed work.
+      const existing = loadSchedule();
+      const map: Record<string, Plan> = {};
+      for (const sub of subs) {
+        const item = existing?.items.find((i) => i.id === sub.id);
+        map[sub.id] = item
+          ? { category: item.category, minutes: item.minutes, done: item.done }
+          : { category: null, minutes: 30, done: false };
+      }
+      setPlan(map);
       setLoading(false);
     })();
   }, []);
 
-  const current = subjects[index];
-  const isLast = index === subjects.length - 1;
-
-  const totalLight = items.filter((i) => i.category === 'light').reduce((s, i) => s + i.minutes, 0);
-
-  function next() {
-    const newItem: ScheduleItem = {
-      id: current.id,
-      name: current.name,
-      category: category!,
-      minutes,
-      done: false,
-    };
-    const updated = [...items, newItem];
-    setItems(updated);
-    setCategory(null);
-    setMinutes(30);
-
-    if (isLast) {
-      setDone(true);
-      return;
-    }
-    setIndex(index + 1);
+  function toggleCategory(id: string, cat: 'deep' | 'light') {
+    setPlan((p) => ({ ...p, [id]: { ...p[id], category: p[id].category === cat ? null : cat } }));
+  }
+  function setMinutes(id: string, m: number) {
+    setPlan((p) => ({ ...p, [id]: { ...p[id], minutes: m } }));
   }
 
-  function addMoreDeepTime(id: string) {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, minutes: i.minutes + 15 } : i)));
-  }
+  const planned = subjects.filter((s) => plan[s.id]?.category || plan[s.id]?.done);
+  const totalDeep = subjects
+    .filter((s) => plan[s.id]?.category === 'deep' && !plan[s.id]?.done)
+    .reduce((a, s) => a + (plan[s.id]?.minutes ?? 0), 0);
 
-  function finish() {
+  function save(goToSession: boolean) {
+    const items: ScheduleItem[] = subjects
+      .filter((s) => plan[s.id]?.done || plan[s.id]?.category)
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        category: plan[s.id].category ?? 'light',
+        minutes: plan[s.id].minutes,
+        done: plan[s.id].done,
+      }));
     saveSchedule(items);
-    router.push('/session');
+    router.push(goToSession ? '/session' : '/home');
   }
-
-  const finalTotalDeep = items.filter((i) => i.category === 'deep').reduce((s, i) => s + i.minutes, 0);
-  const firstDeepItem = items.find((i) => i.category === 'deep');
 
   if (loading) return null;
 
   if (!subjects.length) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-6 py-10 text-center">
-        <h2 className="mb-2 font-serif text-xl">No classes on file yet</h2>
-        <p className="mb-6 text-sm text-muted">Add the classes you're taking so we can build today's plan.</p>
-        <Link href="/profile" className="w-full rounded-xl2 bg-accent py-4 text-center font-serif text-lg font-semibold text-ink">
-          Go to Profile →
-        </Link>
-      </main>
+      <div className="screen">
+        <div className="content center-col" style={{ textAlign: 'center', alignItems: 'center' }}>
+          <div className="ritual-icon">📚</div>
+          <h2 style={{ marginBottom: 8 }}>No classes on file yet</h2>
+          <p style={{ marginBottom: 24 }}>Add the classes you&apos;re taking so we can build today&apos;s plan.</p>
+          <Link href="/profile" className="btn btn-primary" style={{ display: 'block', textAlign: 'center' }}>Go to Profile →</Link>
+        </div>
+      </div>
     );
   }
 
+  const hasPlannedWork = planned.some((s) => !plan[s.id]?.done);
+
   return (
-    <main className="flex min-h-screen flex-col px-6 py-10">
-      {!done ? (
-        <div className="flex flex-1 flex-col">
-          <p className="mb-1 text-xs uppercase tracking-widest text-muted">
-            {index + 1} / {subjects.length}
-          </p>
-          <h2 className="mb-6 font-serif text-xl">{current.name}</h2>
+    <div className="screen">
+      <div className="content fade-in">
+        <h1 style={{ marginBottom: 4 }}>Plan your day</h1>
+        <p style={{ marginBottom: 18 }}>Pick what you&apos;ll work on and how. You set this once — completed work is locked.</p>
 
-          <label className="mb-2 text-xs uppercase tracking-wide text-muted">Is this deep or light work?</label>
-          <div className="mb-6 grid grid-cols-2 gap-3">
-            <button
-              onClick={() => setCategory('deep')}
-              className={`rounded-xl2 border p-4 text-left ${category === 'deep' ? 'border-accent bg-panel2' : 'border-border bg-panel'}`}
-            >
-              <div className="font-serif text-lg">Deep Work</div>
-              <div className="text-xs text-muted">Requires full focus</div>
-            </button>
-            <button
-              onClick={() => setCategory('light')}
-              className={`rounded-xl2 border p-4 text-left ${category === 'light' ? 'border-accent bg-panel2' : 'border-border bg-panel'}`}
-            >
-              <div className="font-serif text-lg">Light Work</div>
-              <div className="text-xs text-muted">Lower-stakes tasks</div>
-            </button>
-          </div>
+        {subjects.map((s) => {
+          const pl = plan[s.id];
+          if (!pl) return null;
 
-          {category && (
-            <>
-              <label className="mb-2 text-xs uppercase tracking-wide text-muted">How long will this take?</label>
-              <div className="mb-2 text-center text-3xl font-semibold text-accent">{minutes} min</div>
-              <input
-                type="range"
-                min={10}
-                max={120}
-                step={5}
-                value={minutes}
-                onChange={(e) => setMinutes(Number(e.target.value))}
-                className="mb-6 w-full accent-[#e8d9b5]"
-              />
-            </>
-          )}
-
-          <div className="flex-1" />
-          <button
-            disabled={!category}
-            onClick={next}
-            className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink disabled:opacity-40"
-          >
-            {isLast ? 'Review Schedule →' : 'Next Subject →'}
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-1 flex-col">
-          <h2 className="mb-5 font-serif text-xl">Today's Plan</h2>
-          <div className="mb-6 space-y-2">
-            {items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between rounded-lg border border-border bg-panel px-4 py-3 text-sm">
-                <div>
-                  <span className="font-medium">{item.name}</span>
-                  <span className="ml-2 text-xs text-muted">{item.category === 'deep' ? 'Deep' : 'Light'}</span>
+          if (pl.done) {
+            return (
+              <div key={s.id} className="card" style={{ opacity: 0.6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 700 }}>{s.name}</span>
+                  <span className="pill pill-break">✓ Completed today</span>
                 </div>
-                <span className="text-muted">{item.minutes} min</span>
               </div>
-            ))}
-          </div>
+            );
+          }
 
-          <div className="mb-3 rounded-xl2 border border-border bg-panel p-4 text-sm">
-            <div className="flex justify-between"><span className="text-muted">Deep work total</span><span>{finalTotalDeep} min</span></div>
-            <div className="flex justify-between"><span className="text-muted">Light work total</span><span>{totalLight} min</span></div>
-          </div>
-
-          {finalTotalDeep > 0 && finalTotalDeep < 60 && firstDeepItem && (
-            <div className="mb-3 rounded-xl2 border border-accent bg-panel2 p-4 text-sm">
-              <p className="mb-2 text-accent">
-                Deep work sessions work best in blocks of at least one hour. You've only allocated {finalTotalDeep} min total.
-              </p>
-              <button
-                onClick={() => addMoreDeepTime(firstDeepItem.id)}
-                className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink"
-              >
-                Add 15 more minutes to {firstDeepItem.name}
-              </button>
+          return (
+            <div key={s.id} className="card">
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>{s.name}</div>
+              <div className="mc-grid" style={{ marginBottom: pl.category ? 12 : 0 }}>
+                <button
+                  className="tag"
+                  style={pl.category === 'deep' ? { borderColor: 'var(--accent)', color: 'var(--accent)', background: 'rgba(108,99,255,.12)' } : undefined}
+                  onClick={() => toggleCategory(s.id, 'deep')}
+                >
+                  🧠 Deep Work
+                </button>
+                <button
+                  className="tag"
+                  style={pl.category === 'light' ? { borderColor: 'var(--accent)', color: 'var(--accent)', background: 'rgba(108,99,255,.12)' } : undefined}
+                  onClick={() => toggleCategory(s.id, 'light')}
+                >
+                  📋 Light Work
+                </button>
+              </div>
+              {pl.category && (
+                <>
+                  <div style={{ textAlign: 'center', fontSize: 22, fontWeight: 800, color: 'var(--accent)', marginBottom: 6 }}>{pl.minutes} min</div>
+                  <input type="range" min={10} max={120} step={5} value={pl.minutes} onChange={(e) => setMinutes(s.id, Number(e.target.value))} />
+                </>
+              )}
+              {!pl.category && <div style={{ fontSize: 12, color: 'var(--muted)' }}>Not in today&apos;s plan — tap to include.</div>}
             </div>
-          )}
+          );
+        })}
 
-          <div className="mb-6 rounded-xl2 border border-border bg-panel p-4 text-sm text-muted">
-            Consider allocating more time to deep work — it's where the real progress happens.
+        {totalDeep > 0 && totalDeep < 60 && (
+          <div className="card" style={{ borderColor: 'var(--accent)' }}>
+            <p style={{ color: 'var(--accent)' }}>
+              Deep work pays off most in blocks of an hour or more — you&apos;ve allocated {totalDeep} min so far.
+            </p>
           </div>
+        )}
 
-          <div className="flex-1" />
-          <button onClick={finish} className="rounded-xl2 bg-accent py-4 font-serif text-lg font-semibold text-ink">
-            Start My Day →
-          </button>
-        </div>
-      )}
-    </main>
+        <div style={{ height: 8 }} />
+        <button className="btn btn-primary" disabled={!hasPlannedWork} onClick={() => save(true)} style={{ display: 'block' }}>
+          Start My Day →
+        </button>
+        <div style={{ height: 8 }} />
+        <button className="btn btn-ghost" onClick={() => save(false)} style={{ display: 'block' }}>
+          Save &amp; go home
+        </button>
+      </div>
+    </div>
   );
 }
