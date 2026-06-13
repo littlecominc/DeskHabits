@@ -142,27 +142,34 @@ export default function OnboardingPage() {
     const userId = data.user.id;
     const signatureDataUrl = canvasRef.current?.toDataURL('image/png') ?? null;
 
-    await supabase.from('profiles').upsert({
-      id: userId,
-      full_name: name,
-      email,
-      desk_habits_score: score,
-      daily_minutes: dailyMinutes,
-      baseline_focus_minutes: focusMinutes,
-      pledge_signed_at: new Date().toISOString(),
-      pledge_signature: signatureDataUrl,
+    // Persist via the service-role route — this works even when email
+    // confirmation is on and the client has no session yet (RLS would block
+    // direct client writes in that case).
+    await fetch('/api/onboarding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        email,
+        fullName: name,
+        score,
+        dailyMinutes,
+        focusMinutes,
+        signature: signatureDataUrl,
+        classes: classes.filter((c) => c.trim()),
+      }),
     });
 
-    const subjectRows = classes.filter((c) => c.trim()).map((c) => ({ user_id: userId, name: c.trim() }));
-    if (subjectRows.length) {
-      await supabase.from('subjects').insert(subjectRows);
-    }
-
-    await supabase.from('progress').upsert({ user_id: userId });
-
     setLoading(false);
-    router.push('/home');
-    router.refresh();
+
+    // If confirmation is required, signUp returns no session — send them to
+    // sign in after they confirm. Otherwise drop straight into the app.
+    if (data.session) {
+      router.push('/home');
+      router.refresh();
+    } else {
+      setError('Account created! Check your email to confirm, then sign in — your plan is saved.');
+    }
   }
 
   return (

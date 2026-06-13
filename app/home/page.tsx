@@ -26,10 +26,11 @@ async function getData() {
     } = await supabase.auth.getUser();
     if (!user) return { name: 'there', stats: EMPTY };
     const [{ data: profile }, stats] = await Promise.all([
-      supabase.from('profiles').select('full_name').eq('id', user.id).single(),
+      supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
       getUserStats(supabase, user.id),
     ]);
-    return { name: profile?.full_name ?? 'there', stats };
+    const name = profile?.full_name && profile.full_name !== user.email ? profile.full_name : 'there';
+    return { name, stats };
   } catch {
     return { name: 'there', stats: EMPTY };
   }
